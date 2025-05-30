@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AURA Admin Dashboard</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: black;
+      color: white;
+    }
+
+    .sidebar {
+      position: fixed;
+      width: 250px;
+      height: 100%;
+      background-color: #111;
+      padding: 20px;
+    }
+
+    .sidebar h1 {
+      color: white;
+      font-size: 24px;
+      margin-bottom: 40px;
+    }
+
+    .sidebar a {
+      display: block;
+      padding: 12px 0;
+      color: white;
+      text-decoration: none;
+      font-size: 16px;
+      border-bottom: 1px solid #333;
+    }
+
+    .main {
+      margin-left: 300px;
+      padding: 20px;
+    }
+
+    .section {
+      background-color: white;
+      border-radius: 12px;
+      color: black;
+      margin-bottom: 30px;
+      padding: 15px;
+    }
+
+    .section h2 {
+      margin-top: 0;
+      font-size: 24x;
+      font-weight: bold;
+    }
+
+    .posts {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+    }
+
+    .post-card {
+      background-color: black;
+      color: white;
+      padding: 15px;
+      border-radius: 10px;
+      width: 200px;
+      min-width: 200px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .post-card button {
+      background-color: white;
+      border: none;
+      padding: 8px;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .business-section {
+      background-color: black;
+      padding: 20px;
+      border-radius: 15px;
+      position: relative;
+    }
+
+    .top-right-controls {
+      position: absolute;
+      top: 10px;
+      right: 20px;
+    }
+
+    .top-right-controls button {
+      background: white;
+      color: black;
+      border: none;
+      font-weight: bold;
+      padding: 4px 10px;
+      margin-left: 5px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .businesses {
+      display: flex;
+      gap: 15px;
+      overflow-x: auto;
+      margin-top: 20px;
+    }
+
+    .business-card {
+      background-color: white;
+      border-radius: 15px;
+      color: black;
+      width: 280px;
+      padding: 10px;
+      position: relative;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header input {
+      border: none;
+      border-bottom: 1px solid #ccc;
+      font-weight: bold;
+      font-size: 14px;
+      flex: 1;
+    }
+
+    .profile {
+      width: 35px;
+      height: 35px;
+      border-radius: 50%;
+      object-fit: cover;
+      background-color: #ddd;
+    }
+
+    .business-info {
+      display: flex;
+      margin-top: 10px;
+      gap: 10px;
+    }
+
+    .main-image {
+      width: 90px;
+      height: 70px;
+      border-radius: 6px;
+      object-fit: cover;
+      background-color: #ddd;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      color: gray;
+    }
+
+    .info-area {
+      flex: 1;
+      font-size: 13px;
+    }
+
+    .info-area[contenteditable="true"] {
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 4px;
+    }
+
+    .actions {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .actions i {
+      cursor: pointer;
+    }
+
+    .upload-btn input {
+      display: none;
+    }
+
+    .floating-btn {
+      position: absolute;
+      bottom: 15px;
+      right: 15px;
+      background-color: #db7a80;
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      color: white;
+      font-size: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      cursor: pointer;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 20px;
+    }
+
+    .searchbar {
+      display: flex;
+      align-items: center;
+      background: white;
+      border-radius: 20px;
+      padding: 5px 10px;
+    }
+
+    .searchbar input {
+      border: none;
+      outline: none;
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 14px;
+    }
+
+    .searchbar i {
+      color: black;
+      margin-left: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h1>AURA</h1>
+    <a href="#">User Accounts</a>
+    <a href="#">Health Records</a>
+    <a href="#">Fertility Centers</a>
+  </div>
+
+  <div class="main">
+    <!-- Search bar -->
+    <div class="topbar">
+      <div class="searchbar">
+        <input type="text" placeholder="enter search..." />
+        <i class="fa fa-search"></i>
+      </div>
+    </div>
+
+    <!-- Community Comments Section -->
+    <div class="section">
+      <h2>Community</h2>
+      <div class="posts">
+        <div class="post-card">
+          <p>Is it normal for my discharge to smell? I feel so insecure, can someone help?</p>
+          <button>View Comments</button>
+        </div>
+        <div class="post-card">
+          <p>How do I know if I'm ovulating right? I’m trying to conceive.</p>
+          <button>View Comments</button>
+        </div>
+        <div class="post-card">
+          <p>I forgot to take my pill yesterday. Will I be okay?</p>
+          <button>View Comments</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Business Section -->
+    <h2>Businesses</h2>
+    <div class="business-section">
+      <div class="top-right-controls">
+        <button onclick="scrollCards(-1)">&#60;</button>
+        <button onclick="scrollCards(1)">&#62;</button>
+      </div>
+
+      <div class="businesses" id="cardContainer">
+        <!-- Business cards rendered here -->
+      </div>
+
+      <button class="floating-btn" id="addCardBtn" onclick="toggleAddCard()">+</button>
+    </div>
+  </div>
+
+  <!-- FontAwesome icons -->
+  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+
+  <!-- Script -->
+  <script>
+    let addingCard = false;
+
+    const defaultCards = [
+      {
+        id: 1,
+        profile: "../assets/emma.png",
+        name: "Emma - Florist",
+        image: "../assets/flower.png",
+        info: "Florist & Delivery\nRM10 - RM30\nIpoh Garden East, Festival Walk"
+      },
+      {
+        id: 2,
+        profile: "../assets/anna.png",
+        name: "Dr Au Mei Zhen",
+        image: "../assets/counsellor.png",
+        info: "Counsellor (Online)\nRM200 per session\nPrivate sessions available online."
+      }
+    ];
+
+    function createCard(data, editable = false) {
+      const div = document.createElement("div");
+      div.className = "business-card";
+
+      div.innerHTML = `
+        <div class="header">
+          <label class="upload-btn">
+            <img src="${data.profile || ""}" class="profile" id="profile${data.id}" onclick="document.getElementById('profileInput${data.id}').click()" />
+            <input type="file" id="profileInput${data.id}" accept="image/*" onchange="previewImage(event, 'profile${data.id}')" />
+          </label>
+          <input type="text" value="${data.name || ""}" placeholder="Profile Name" ${editable ? "" : "readonly"}>
+        </div>
+
+        <div class="business-info">
+          <label class="upload-btn">
+            <div class="main-image" id="main${data.id}" onclick="document.getElementById('mainInput${data.id}').click()">
+              ${!data.image ? "+" : `<img src="${data.image}" class="main-image" style="object-fit: cover;" />`}
+            </div>
+            <input type="file" id="mainInput${data.id}" accept="image/*" onchange="previewImage(event, 'main${data.id}')" />
+          </label>
+          <div class="info-area" contenteditable="${editable}" id="info${data.id}">${data.info || "Enter some info for business"}</div>
+        </div>
+
+        <div class="actions">
+          <i class="fa fa-pencil" onclick="toggleEdit(this, ${data.id})"></i>
+          <i class="fa fa-trash" onclick="deleteCard(${data.id})"></i>
+        </div>
+      `;
+      return div;
+    }
+
+    function renderInitialCards() {
+      const container = document.getElementById("cardContainer");
+      container.innerHTML = "";
+      defaultCards.forEach(card => container.appendChild(createCard(card)));
+    }
+
+    function scrollCards(dir) {
+      const container = document.getElementById("cardContainer");
+      container.scrollBy({ left: dir * 300, behavior: "smooth" });
+    }
+
+    function toggleAddCard() {
+      const btn = document.getElementById("addCardBtn");
+      const container = document.getElementById("cardContainer");
+
+      if (!addingCard) {
+        const newId = Date.now();
+        const newCard = createCard({ id: newId }, true);
+        container.appendChild(newCard);
+        btn.innerText = "✓";
+        addingCard = true;
+      } else {
+        btn.innerText = "+";
+        addingCard = false;
+      }
+    }
+
+    function toggleEdit(icon, id) {
+      const card = icon.closest(".business-card");
+      const input = card.querySelector("input[type='text']");
+      const info = card.querySelector(".info-area");
+
+      const isEditing = !input.hasAttribute("readonly");
+      if (isEditing) {
+        input.setAttribute("readonly", true);
+        info.setAttribute("contenteditable", false);
+        icon.classList.remove("fa-check");
+        icon.classList.add("fa-pencil");
+      } else {
+        input.removeAttribute("readonly");
+        info.setAttribute("contenteditable", true);
+        icon.classList.remove("fa-pencil");
+        icon.classList.add("fa-check");
+      }
+    }
+
+    function deleteCard(id) {
+      const card = document.getElementById(`profile${id}`).closest(".business-card");
+      card.remove();
+    }
+
+    function previewImage(event, id) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function () {
+        const el = document.getElementById(id);
+        if (el.tagName === "IMG") {
+          el.src = reader.result;
+        } else {
+          el.innerHTML = `<img src="${reader.result}" class="main-image" style="object-fit: cover;" />`;
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    window.onload = renderInitialCards;
+  </script>
+</body>
+</html>

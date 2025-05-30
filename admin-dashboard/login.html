@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Login - AURA</title>
+  <style>
+    body {
+      background-color: black;
+      color: white;
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .login-box {
+      background-color: #111;
+      padding: 30px;
+      border-radius: 10px;
+      width: 320px;
+      text-align: center;
+    }
+
+    .login-box h2 {
+      margin-bottom: 20px;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border-radius: 6px;
+      border: none;
+    }
+
+    button {
+      margin-top: 10px;
+      width: 100%;
+      background-color: #db7a80;
+      color: white;
+      border: none;
+      padding: 10px;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .error {
+      color: red;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-box">
+    <h2>Admin Login</h2>
+    <input type="email" id="email" placeholder="Admin Email" />
+    <input type="password" id="password" placeholder="Password" />
+    <button onclick="handleLogin()">Login</button>
+    <p class="error" id="errorMsg"></p>
+  </div>
+
+  <script>
+    async function handleLogin() {
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value.trim();
+      const errorMsg = document.getElementById("errorMsg");
+
+      const response = await fetch("http://localhost:3000/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        window.location.href = "index.html";
+      } else {
+        errorMsg.innerText = result.message || "Invalid credentials";
+      }
+    }
+  </script>
+</body>
+</html>
