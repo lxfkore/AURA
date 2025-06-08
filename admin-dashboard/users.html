@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Users</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #000;
+      color: white;
+      font-size: 17px;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      padding: 10px 20px;
+      background-color: black;
+      border-bottom: 1px solid #333;
+    }
+    .menu-icon {
+      font-size: 24px;
+      cursor: pointer;
+      margin-right: 20px;
+    }
+    h1 {
+      flex-grow: 1;
+      font-weight: bold;
+      font-size: 24px;
+      margin: 0;
+    }
+    .searchbar {
+      display: flex;
+      align-items: center;
+      background: white;
+      border-radius: 20px;
+      padding: 5px 10px;
+    }
+    .searchbar input {
+      border: none;
+      outline: none;
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 14px;
+    }
+    .searchbar i {
+      color: black;
+      margin-left: 8px;
+    }
+    main {
+      background-color: black;
+      margin: 20px;
+      border-radius: 15px;
+      padding: 20px;
+      min-height: 400px;
+      color: white;
+    }
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0 0;
+      background-color: #eee;
+      color: black;
+      border-radius: 15px;
+      overflow: hidden;
+    }
+    th, td {
+      padding: 12px 15px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+      border-right: 1px solid #555;
+    }
+    th:last-child, td:last-child {
+      border-right: none;
+    }
+    th {
+      background-color: #222;
+      color: white;
+    }
+    tr:hover {
+      background-color: #ddd;
+    }
+    css
+    .delete-icon {
+      cursor: pointer;
+      color: #ff0000; 
+      font-size: 18px;
+    }
+        .stats-icon {
+      cursor: pointer;
+      color: #555;
+      font-size: 18px;
+    }
+  </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" crossorigin="anonymous" />
+  <style>
+    /* Resizable columns styles */
+    th {
+      position: relative;
+    }
+    th .resizer {
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 5px;
+      cursor: col-resize;
+      user-select: none;
+      height: 100%;
+      background-color: transparent;
+    }
+    th.resizing {
+      background-color: #ddd;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <i class="fas fa-bars menu-icon"></i>
+    <h1>Users</h1>
+    <div class="searchbar">
+      <input type="text" placeholder="enter email..." id="searchInput" />
+      <i class="fa fa-search"></i>
+    </div>
+  </header>
+  <main>
+    <table id="usersTable">
+      <thead>
+        <tr>
+      <th>User ID<div class="resizer"></div></th>
+      <th>Emails<div class="resizer"></div></th>
+      <th>Password<div class="resizer"></div></th>
+      <th>Status<div class="resizer"></div></th>
+      <th>Last Login<div class="resizer"></div></th>
+      <th>Delete user</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- User rows will be inserted here -->
+      </tbody>
+    </table>
+  </main>
+
+  <script>
+    const usersTableBody = document.querySelector('#usersTable tbody');
+    const searchInput = document.getElementById('searchInput');
+    let users = [];
+
+    function renderUsers(filter = '') {
+      usersTableBody.innerHTML = '';
+      const filteredUsers = users.filter(user => user.email.toLowerCase().includes(filter.toLowerCase()));
+      filteredUsers.forEach(user => {
+        const tr = document.createElement('tr');
+
+        const userIdTd = document.createElement('td');
+        userIdTd.textContent = user.user_id || 'N/A';
+        tr.appendChild(userIdTd);
+
+        const emailTd = document.createElement('td');
+        emailTd.textContent = user.email || 'N/A';
+        tr.appendChild(emailTd);
+
+        const passwordTd = document.createElement('td');
+        passwordTd.textContent = user.password || 'N/A';
+        tr.appendChild(passwordTd);
+
+        const statusTd = document.createElement('td');
+        if (user.pregnancy_status_id === 1) { // 1 = Pregnant
+          statusTd.textContent = 'Pregnant';
+        } else if (user.pregnancy_status_id === 2) { // 2 = Not Pregnant
+          statusTd.textContent = 'Not Pregnant';
+        } else {
+          statusTd.textContent = 'Not Set'; // Fallback for invalid values
+        }
+        tr.appendChild(statusTd);
+
+
+        const lastLoginTd = document.createElement('td');
+        const lastLoginDate = new Date(user.last_login).toLocaleString(); 
+        lastLoginTd.textContent = lastLoginDate || 'Never logged in';
+        tr.appendChild(lastLoginTd);
+
+        const deleteTd = document.createElement('td');
+        const deleteIcon = document.createElement('i');
+        deleteIcon.className = 'fas fa-trash delete-icon';
+        deleteIcon.title = 'Delete user';
+        deleteIcon.style.cursor = 'pointer'; 
+        deleteIcon.onclick = () => deleteUser(user.user_id);
+        deleteTd.appendChild(deleteIcon);
+        tr.appendChild(deleteTd);
+
+        usersTableBody.appendChild(tr);
+      });
+    }
+
+    function fetchUsers() {
+      fetch('http://localhost:5000/api/users')
+        .then(res => {
+          console.log('Fetch /api/users response status:', res.status);
+          return res.json();
+        })
+        .then(data => {
+          console.log('Fetched users data:', data);
+          users = data;
+          renderUsers();
+        })
+        .catch((err) => {
+          console.error('Error fetching users:', err);
+          usersTableBody.innerHTML = '<tr><td colspan="7">Error loading users.</td></tr>';
+        });
+    }
+
+    function deleteUser(userId) {
+      if (!confirm('Delete this user?')) return;
+      fetch(`http://localhost:5000/api/users/${userId}`, {
+        method: 'DELETE'
+      })
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to delete user');
+        users = users.filter(u => u.user_id !== userId);
+        renderUsers(searchInput.value);
+      })
+      .catch(err => alert(err.message));
+    }
+
+    searchInput.addEventListener('input', () => {
+      renderUsers(searchInput.value);
+    });
+
+    window.onload = () => {
+      fetchUsers();
+      initResizableColumns();
+    };
+
+    // Column resizing logic
+    function initResizableColumns() {
+      const table = document.getElementById('usersTable');
+      const cols = table.querySelectorAll('th');
+      let startX, startWidth, resizer, currentCol;
+
+      cols.forEach(col => {
+        const resizer = col.querySelector('.resizer');
+        if (!resizer) return;
+
+        resizer.addEventListener('mousedown', (e) => {
+          currentCol = col;
+          startX = e.pageX;
+          startWidth = currentCol.offsetWidth;
+          document.addEventListener('mousemove', onMouseMove);
+          document.addEventListener('mouseup', onMouseUp);
+          currentCol.classList.add('resizing');
+        });
+
+        function onMouseMove(e) {
+          const newWidth = startWidth + (e.pageX - startX);
+          if (newWidth > 30) { // minimum width
+            currentCol.style.width = newWidth + 'px';
+          }
+        }
+
+        function onMouseUp() {
+          document.removeEventListener('mousemove', onMouseMove);
+          document.removeEventListener('mouseup', onMouseUp);
+          if (currentCol) currentCol.classList.remove('resizing');
+        }
+      });
+    }
+  </script>
+</body>
+</html>

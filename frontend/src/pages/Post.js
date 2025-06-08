@@ -10,26 +10,37 @@ const Post = ({ navigation }) => {
     const [isVisible, setIsVisible] = useState(false);
     const [postText, setPostText] = useState("");
     const wordLimit = 100;
-    const [activeTab, setActiveTab] = useState("blogs");
+    const [activeTab, setActiveTab] = useState("blog");
 
     const handlePost = async () => {
         if (postText === '') {
             setIsVisible(true);
         } else {
             try {
-                const response = await fetch('http://192.168.99.94:5000/api/posts', {
+                // Map tab to category ID
+                let categoryId = 1;
+                if (activeTab === 'blog') categoryId = 1;
+                else if (activeTab === 'questionnaire') categoryId = 2;
+
+                const payload = {
+                    post_name: postText,
+                    category_id: categoryId, 
+                };
+
+                console.log("Posting with payload:", payload); // Debug log
+
+                const response = await fetch('http://192.168.0.102:5000/api/posts', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                        post_name: postText,
-                        post_category: activeTab, // Use the active tab to determine the category
-                    }),
+                    body: JSON.stringify(payload),
                 });
 
                 if (response.ok) {
-                    navigation.navigate('Community', { newPost: { post_name: postText, post_category: activeTab } });
+                    navigation.navigate('Community', {
+                        newPost: { post_name: postText, post_category: categoryId }
+                    });
                 } else {
                     const errorData = await response.json();
                     console.error('Error creating post:', errorData);
@@ -42,15 +53,14 @@ const Post = ({ navigation }) => {
 
     return (
         <View style={styles.container}>
-            {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity
                     style={styles.menuButton}
                     onPress={() => setMenuVisible(!menuVisible)}
                     onLayout={(event) => {
-                    const { x, y } = event.nativeEvent.layout;
-                    setMenuButtonPosition({ x: x - 250, y });
-                 }}
+                        const { x, y } = event.nativeEvent.layout;
+                        setMenuButtonPosition({ x: x - 250, y });
+                    }}
                 >
                     <FontAwesome name="bars" size={28} color="white" />
                 </TouchableOpacity>
@@ -62,7 +72,6 @@ const Post = ({ navigation }) => {
             </View>
             <View style={{ height: 1, backgroundColor: "white", width: "99%", marginTop: 15 }} />
 
-            {/* Menu Dropdown */}
             {menuVisible && (
                 <MenuBar
                     menuVisible={menuVisible}
@@ -73,46 +82,48 @@ const Post = ({ navigation }) => {
                 />
             )}
 
-            {/* Text Input */}
             <TextInput
                 style={styles.textInput}
                 placeholder="Write about something here..."
-                placeholderTextColor="rgba(255, 255, 255, 0.75)" // Increase transparency
+                placeholderTextColor="rgba(255, 255, 255, 0.75)"
                 multiline
                 onChangeText={setPostText}
                 value={postText}
                 maxLength={wordLimit}
-                placeholderStyle={{ fontWeight: "bold", fontSize: 400 }} // Make placeholder text bold and bigger
             />
 
             <View style={{ flex: 1 }} />
 
-            {/* Word Counter */}
             <View style={{ marginTop: 10 }}>
-            <Text style={styles.wordCounter}>{postText.length}/{wordLimit} words</Text>
+                <Text style={styles.wordCounter}>{postText.length}/{wordLimit} words</Text>
             </View>
 
-            {/* Line */}
             <View style={{ height: 1, backgroundColor: "white", width: "99%", marginTop: 10 }} />
 
-             {/* Tabs */}
-             <View style={styles.tabs}>
-             <TouchableOpacity style={activeTab === "blog" ? styles.tabActive : styles.tabInactive} onPress={() => setActiveTab("blog")}>
-                <Text style={activeTab === "blog" ? styles.tabTextActive : styles.tabTextInactive}>Blogs</Text>
-            </TouchableOpacity>
-                <TouchableOpacity style={activeTab === "questionnaire" ? styles.tabActive : styles.tabInactive} onPress={() => setActiveTab("questionnaire")}>
+            <View style={styles.tabs}>
+                <TouchableOpacity
+                    style={activeTab === "blog" ? styles.tabActive : styles.tabInactive}
+                    onPress={() => setActiveTab("blog")}
+                >
+                    <Text style={activeTab === "blog" ? styles.tabTextActive : styles.tabTextInactive}>Blogs</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={activeTab === "questionnaire" ? styles.tabActive : styles.tabInactive}
+                    onPress={() => setActiveTab("questionnaire")}
+                >
                     <Text style={activeTab === "questionnaire" ? styles.tabTextActive : styles.tabTextInactive}>Questionnaire</Text>
                 </TouchableOpacity>
             </View>
 
-            {/* Post Button */}
             <View style={{ marginTop: 20, marginBottom: 90 }}>
-            <TouchableOpacity style={[styles.postButton, { alignSelf: "center" }]} onPress={handlePost}>
-                        <Text style={styles.postButtonText}>Post</Text>
-                    </TouchableOpacity>
-                </View>
+                <TouchableOpacity
+                    style={[styles.postButton, { alignSelf: "center" }]}
+                    onPress={handlePost}
+                >
+                    <Text style={styles.postButtonText}>Post</Text>
+                </TouchableOpacity>
+            </View>
 
-            {/*Alert pop up*/}
             <Modal isVisible={isVisible} style={{ margin: 0, justifyContent: 'center', alignItems: 'center' }}>
                 <View style={styles.modalContainer}>
                     <Text style={styles.modalText}>Error</Text>
@@ -122,7 +133,7 @@ const Post = ({ navigation }) => {
                     </TouchableOpacity>
                 </View>
             </Modal>
-            </View>
+        </View>
     );
 };
 

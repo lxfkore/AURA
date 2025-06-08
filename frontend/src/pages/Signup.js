@@ -1,29 +1,47 @@
-import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Image, Alert } from "react-native";
-import * as WebBrowser from "expo-web-browser";
-import * as Google from "expo-auth-session/providers/google";
+import React, { useState } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert } from "react-native";
 import LottieView from "lottie-react-native";
-
-WebBrowser.maybeCompleteAuthSession();
+import axios from "axios";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Signup = ({ navigation }) => {
-    const [request, response, promptAsync] = Google.useAuthRequest({
-        androidClientId: "275605283188-ilet75uj030f4lspee1cfv3j9b3qjm43.apps.googleusercontent.com",
-        expoClientId: "275605283188-t5dqblqaqkhs2ul6ahfk8s40nua.apps.googleusercontent.com",
-    });
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
 
-    React.useEffect(() => {
-        if (response?.type === "success") {
-            const { authentication } = response;
-            Alert.alert("Google Sign-In Success", "You have successfully signed in with Google.");
-            navigation.navigate("Period");
-        } else if (response?.type === "error") {
-            Alert.alert("Google Sign-In Failed", "An error occurred during Google Sign-In.");
+    const validateInputs = () => {
+        if (!email.includes('@')) {
+            Alert.alert("Invalid Email", "Email must contain '@' symbol.");
+            return false;
         }
-    }, [response]);
+        if (password.length < 6 || !/\d/.test(password)) {
+            Alert.alert("Invalid Password", "Password must be at least 6 characters and include a number.");
+            return false;
+        }
+        return true;
+    };
 
-    const handleGoogleSignIn = () => {
-        promptAsync();
+    const handleSignUp = async () => {
+        if (!validateInputs()) return;
+
+        try {
+            const response = await axios.post('http://192.168.0.102:5000/api/register', { email, password });
+            Alert.alert("Success", response.data.message);
+            await AsyncStorage.setItem('isLoggedIn', 'true');
+            await AsyncStorage.setItem('userId', response.data.userId ? response.data.userId.toString() : '');
+            if (response.data.token) {
+                await AsyncStorage.setItem('token', response.data.token);
+            } else {
+                console.warn('No token in signup response');
+            }
+            navigation.replace("Period");
+        } catch (error) {
+            if (error.response) {
+                Alert.alert("Registration Failed", error.response.data.error);
+            } else {
+            console.log("Signup Error:", error);
+            Alert.alert("Error", "An unexpected error occurred.");
+        }
+        }
     };
 
     return (
@@ -37,18 +55,31 @@ const Signup = ({ navigation }) => {
             />
             <View style={styles.signupBox}>
                 <Text style={styles.title}>Let's get you started</Text>
-                <TouchableOpacity
-                    style={styles.googleButton}
-                    onPress={handleGoogleSignIn}
-                    disabled={!request}
-                >
-                    <Image
-                        source={require("../../../assets/google-icon.png")}
-                        style={styles.googleIcon}
-                    />
-                    <Text style={styles.buttonText}>Google Account</Text>
-                </TouchableOpacity>
+                <TextInput
+                    style={styles.input}
+                    placeholder="Email"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    value={email}
+                    onChangeText={setEmail}
+                />
+                <TextInput
+                    style={styles.input}
+                    placeholder="Password"
+                    secureTextEntry
+                    value={password}
+                    onChangeText={setPassword}
+                />
+            <TouchableOpacity
+                style={styles.signInButton}
+                onPress={handleSignUp}
+            >
+                <Text style={styles.buttonText}>Sign Up</Text>
+            </TouchableOpacity>
             </View>
+            <TouchableOpacity onPress={() => navigation.navigate('Login')} style={styles.loginTextContainer}>
+                <Text style={styles.loginText}>Already have an account? Login here</Text>
+            </TouchableOpacity>
         </View>
     );
 };
@@ -74,6 +105,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.2,
         shadowRadius: 4,
         elevation: 5,
+        width: 283,
     },
     title: {
         fontSize: 20,
@@ -81,25 +113,48 @@ const styles = StyleSheet.create({
         textAlign: "center",
         marginBottom: 15,
     },
-    googleButton: {
-        flexDirection: "row",
+    signInButton: {
+        backgroundColor: "#000000",
+        paddingVertical: 13,
+        paddingHorizontal: 13,
+        borderRadius: 13,
+        width: "100%",
         alignItems: "center",
-        backgroundColor: "#EDEDED",
-        paddingVertical: 12,
-        paddingHorizontal: 20,
-        borderRadius: 10,
-        width: 200,
-        justifyContent: "center",
-    },
-    googleIcon: {
-        width: 20,
-        height: 20,
-        marginRight: 10,
+        marginTop: 10,
     },
     buttonText: {
-        fontSize: 16,
+        fontSize: 17,
         fontWeight: "bold",
-        color: "#555",
+        color: "white",
+    },
+    loginText: {
+        color: 'white',
+        marginTop: 15,
+        textAlign: 'center',
+        textDecorationLine: 'underline',
+        fontSize: 14,
+    },
+    loginTextContainer: {
+        marginTop: 450,
+        alignItems: 'center',
+    },
+    bottomTextContainer: {
+        marginTop: 20,
+        alignItems: 'center',
+    },
+    bottomText: {
+        color: 'black',
+        textDecorationLine: 'underline',
+        fontSize: 14,
+    },
+    input: {
+        width: "100%",
+        height: 40,
+        borderColor: "#ccc",
+        borderWidth: 1,
+        borderRadius: 8,
+        paddingHorizontal: 10,
+        marginBottom: 10,
     },
 });
 

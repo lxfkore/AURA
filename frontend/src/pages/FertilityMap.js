@@ -4,15 +4,14 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Linking,
+  TextInput,
   Image,
 } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import * as Location from "expo-location";
 import { FontAwesome } from "@expo/vector-icons";
 import MenuBar from "../components/MenuBar";
-import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
-
+ 
 const FertilityMap = ({ navigation }) => {
   const [location, setLocation] = useState(null);
   const [region, setRegion] = useState({
@@ -23,28 +22,17 @@ const FertilityMap = ({ navigation }) => {
   });
   const [menuVisible, setMenuVisible] = useState(false);
   const [menuButtonPosition, setMenuButtonPosition] = useState({ x: 0, y: 0 });
-
+  const [fertilityCenters, setFertilityCenters] = useState([]);
+  const [selectedCenter, setSelectedCenter] = useState(null);
+  const [searchText, setSearchText] = useState("");
+ 
   const mapRef = useRef(null);
-  const autocompleteRef = useRef(null);
-
-  const fertilityCenter = {
-    name: "Sunfert Ipoh",
-    rating: 4.8,
-    address:
-      "No 2-35G & 2-36G, Festival Walk @ Ipoh, Jalan Medan Ipoh 1, Medan Ipoh Bistari, 31400 Ipoh, Perak",
-    coordinates: {
-      latitude: 4.625339,
-      longitude: 101.106729,
-    },
-    image:
-      "https://lh5.googleusercontent.com/p/AF1QipPo6g4lSmqz_SauSL-q_NLNFMi06gh0UIqu9n0x=w408-h306-k-no",
-  };
-
+ 
   useEffect(() => {
     (async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") return;
-
+ 
       let currentLocation = await Location.getCurrentPositionAsync({});
       setLocation(currentLocation.coords);
       setRegion({
@@ -53,21 +41,83 @@ const FertilityMap = ({ navigation }) => {
         latitudeDelta: 0.01,
         longitudeDelta: 0.01,
       });
+ 
+      fetchNearbyCenters(currentLocation.coords.latitude, currentLocation.coords.longitude);
     })();
   }, []);
-
+ 
+  const fetchNearbyCenters = async (latitude, longitude) => {
+    try {
+      const response = await fetch(`http://192.168.0.102:5000/api/fertility-centers-nearby?latitude=${latitude}&longitude=${longitude}&radius=10`);
+      const data = await response.json();
+      setFertilityCenters(data);
+      if (data.length > 0) {
+        setSelectedCenter(data[0]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch nearby fertility centers:", error);
+    }
+  };
+ 
+  const searchCentersByName = async (name) => {
+    if (!name) {
+      // If search is empty, fetch nearby centers again
+      if (location) {
+        fetchNearbyCenters(location.latitude, location.longitude);
+      }
+      return;
+    }
+    try {
+      const response = await fetch(`http://192.168.0.102:5000/api/fertility-centers/search?name=${encodeURIComponent(name)}`);
+      const data = await response.json();
+      setFertilityCenters(data);
+      if (data.length > 0) {
+        const firstCenter = data[0];
+        const newRegion = {
+          latitude: firstCenter.coordinates.latitude,
+          longitude: firstCenter.coordinates.longitude,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        };
+        setRegion(newRegion);
+        mapRef.current?.animateToRegion(newRegion, 1000);
+        setSelectedCenter(firstCenter);
+      }
+    } catch (error) {
+      console.error("Failed to search fertility centers:", error);
+    }
+  };
+ 
+  const handleSearchChange = (text) => {
+    setSearchText(text);
+    searchCentersByName(text);
+  };
+ 
   const openInMaps = () => {
-    const { latitude, longitude } = fertilityCenter.coordinates;
+    if (!selectedCenter) return;
+    const { latitude, longitude } = selectedCenter.coordinates;
     const url = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
     Linking.openURL(url);
   };
-
-  const handleSearchPress = () => {
-    if (autocompleteRef.current) {
-      autocompleteRef.current.focus();
+ 
+  const handleLocateUser = async () => {
+    try {
+      let currentLocation = await Location.getCurrentPositionAsync({});
+      setLocation(currentLocation.coords);
+      const newRegion = {
+        latitude: currentLocation.coords.latitude,
+        longitude: currentLocation.coords.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      };
+      setRegion(newRegion);
+      mapRef.current?.animateToRegion(newRegion, 1000);
+      fetchNearbyCenters(currentLocation.coords.latitude, currentLocation.coords.longitude);
+    } catch (error) {
+      console.error("Failed to get user location:", error);
     }
   };
-
+ 
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -81,11 +131,11 @@ const FertilityMap = ({ navigation }) => {
         >
           <FontAwesome name="bars" size={24} color="black" />
         </TouchableOpacity>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={handleLocateUser}>
           <FontAwesome name="location-arrow" size={24} color="black" />
         </TouchableOpacity>
       </View>
-
+ 
       {menuVisible && (
         <MenuBar
           menuVisible={menuVisible}
@@ -94,74 +144,29 @@ const FertilityMap = ({ navigation }) => {
           navigation={navigation}
         />
       )}
-
-      {/* Search Bar */}
+ 
+      {/* Search Input */}
       <View style={styles.searchContainer}>
-        <GooglePlacesAutocomplete
-          ref={autocompleteRef}
-          placeholder="Search fertility centers"
-          fetchDetails={true}
-          onPress={(data, details = null) => {
-            if (details?.geometry?.location) {
-              const { lat, lng } = details.geometry.location;
-              const newRegion = {
-                latitude: lat,
-                longitude: lng,
-                latitudeDelta: 0.01,
-                longitudeDelta: 0.01,
-              };
-              setRegion(newRegion);
-              mapRef.current?.animateToRegion(newRegion, 1000);
-            }
-          }}
-          query={{
-            key: "AIzaSyDXO_-3hJN8TJ2ZREw8X6hGUyUY6TLHgfc", // replace with your API key
-            language: "en",
-            types: "establishment",
-            keyword: "fertility center",
-            location: `${region.latitude},${region.longitude}`,
-            radius: 10000,
-          }}
-          styles={{
-            textInputContainer: {
-              flexDirection: "row",
-              alignItems: "center",
-              backgroundColor: "white",
-              borderRadius: 20,
-              paddingLeft: 10,
-              paddingRight: 5,
-              borderColor: "#ccc",
-              borderWidth: 1,
-              height: 40,
-            },
-            textInput: {
-              flex: 1,
-              fontSize: 14,
-              borderRadius: 20,
-              paddingLeft: 10,
-              paddingVertical: 5,
-            },
-            listView: {
-              backgroundColor: "#fff",
-              marginTop: 2,
-              borderRadius: 10,
-            },
-          }}
-          nearbyPlacesAPI="GooglePlacesSearch"
-          debounce={300}
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search fertility centers by name"
+          value={searchText}
+          onChangeText={handleSearchChange}
+          clearButtonMode="while-editing"
         />
-        <TouchableOpacity onPress={handleSearchPress} style={styles.searchIconWrapper}>
-          <FontAwesome name="search" size={18} color="#333" />
-        </TouchableOpacity>
       </View>
-
+ 
       {/* Map View */}
       <MapView ref={mapRef} style={styles.map} region={region}>
-        <Marker
-          coordinate={fertilityCenter.coordinates}
-          title={fertilityCenter.name}
-          pinColor="red"
-        />
+        {fertilityCenters.map(center => (
+          <Marker
+            key={center.id}
+            coordinate={center.coordinates}
+            title={center.name}
+            pinColor="#db7a80"
+            onPress={() => setSelectedCenter(center)}
+          />
+        ))}
         {location && (
           <Marker
             coordinate={{
@@ -169,31 +174,33 @@ const FertilityMap = ({ navigation }) => {
               longitude: location.longitude,
             }}
             title="You are here"
-            pinColor="blue"
+            pinColor="black"
           />
         )}
       </MapView>
-
+ 
       {/* Bottom Card */}
-      <View style={styles.card}>
-        <Text style={styles.name}>
-          {fertilityCenter.name}{" "}
-          <Text style={styles.rating}>{fertilityCenter.rating} ★</Text>
-        </Text>
-        <View style={styles.cardContent}>
-          <Image source={{ uri: fertilityCenter.image }} style={styles.image} />
-          <Text style={styles.address}>{fertilityCenter.address}</Text>
+      {selectedCenter && (
+        <View style={styles.card}>
+          <Text style={styles.name}>
+            {selectedCenter.name}{" "}
+            <Text style={styles.rating}>{selectedCenter.rating} ★</Text>
+          </Text>
+          <View style={styles.cardContent}>
+            <Image source={{ uri: selectedCenter.image }} style={styles.image} />
+            <Text style={styles.address}>{selectedCenter.address}</Text>
+          </View>
+          <TouchableOpacity style={styles.mapButton} onPress={openInMaps}>
+            <Text style={styles.mapButtonText}>Open in Maps</Text>
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.mapButton} onPress={openInMaps}>
-          <Text style={styles.mapButtonText}>Open in Maps</Text>
-        </TouchableOpacity>
-      </View>
+      )}
     </View>
   );
 };
-
+ 
 export default FertilityMap;
-
+ 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
   header: {
@@ -211,14 +218,13 @@ const styles = StyleSheet.create({
     left: 20,
     right: 20,
     zIndex: 10,
-    flexDirection: "row",
-    alignItems: "center",
   },
-  searchIconWrapper: {
-    marginLeft: 5,
-    backgroundColor: "#fff",
-    padding: 8,
+  searchInput: {
+    height: 40,
+    backgroundColor: "white",
     borderRadius: 20,
+    paddingHorizontal: 15,
+    fontSize: 16,
     borderColor: "#ccc",
     borderWidth: 1,
   },

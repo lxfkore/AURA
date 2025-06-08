@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Medical Centers</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #000;
+      color: white;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      padding: 10px 20px;
+      background-color: black;
+      border-bottom: 1px solid #333;
+    }
+    .menu-icon {
+      font-size: 24px;
+      cursor: pointer;
+      margin-right: 20px;
+    }
+    h1 {
+      flex-grow: 1;
+      font-weight: bold;
+      font-size: 24px;
+      margin: 0;
+    }
+    .searchbar {
+      display: flex;
+      align-items: center;
+      background: white;
+      border-radius: 20px;
+      padding: 5px 10px;
+    }
+    .searchbar input {
+      border: none;
+      outline: none;
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 14px;
+    }
+    .searchbar i {
+      color: black;
+      margin-left: 8px;
+    }
+    main {
+      display: flex;
+      gap: 20px;
+      margin: 20px;
+      border-radius: 15px;
+      padding: 20px;
+      min-height: 400px;
+      background-color: black;
+    }
+    .left-panel {
+      flex: 1;
+      max-width: 400px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    .center-list {
+      flex-grow: 1;
+      overflow-y: auto;
+    }
+    .center-item {
+      background-color: #eee;
+      color: black;
+      border-radius: 15px;
+      padding: 10px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .center-item img {
+      width: 60px;
+      height: 60px;
+      border-radius: 10px;
+      object-fit: cover;
+    }
+    .center-info {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .center-name {
+      font-weight: bold;
+      font-size: 16px;
+    }
+    .center-address {
+      font-size: 14px;
+      line-height: 1.2;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .add-center-form {
+      background-color: #222;
+      padding: 15px;
+      border-radius: 15px;
+      margin-bottom: 10px;
+    }
+    .add-center-form label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    .add-center-form input {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+      border-radius: 10px;
+      border: none;
+      font-size: 14px;
+    }
+    .add-center-form button {
+      background-color: #db7a80;
+      border: none;
+      padding: 10px;
+      border-radius: 10px;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      width: 100%;
+    }
+    .map-container {
+      flex: 2;
+      border-radius: 15px;
+      overflow: hidden;
+      min-height: 400px;
+    }
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+  </style>
+  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+</head>
+<body>
+  <header>
+    <i class="fas fa-bars menu-icon"></i>
+    <h1>Medical Centers</h1>
+    <div class="searchbar">
+      <input type="text" placeholder="enter search..." id="searchInput" />
+      <i class="fa fa-search"></i>
+    </div>
+  </header>
+  <main>
+    <div class="left-panel">
+      <form class="add-center-form" id="addCenterForm">
+        <label for="name">Name</label>
+        <input type="text" id="name" required />
+        <label for="address">Address</label>
+        <input type="text" id="address" required />
+        <label for="latitude">Latitude</label>
+        <input type="number" id="latitude" step="any" required />
+        <label for="longitude">Longitude</label>
+        <input type="number" id="longitude" step="any" required />
+        <label for="image">Image URL</label>
+        <input type="text" id="image" />
+        <button type="submit">Add Fertility Center</button>
+      </form>
+      <div class="center-list" id="centerList"></div>
+    </div>
+    <div class="map-container" id="mapContainer">
+      <!-- Map iframe or embed here -->
+      <iframe
+        id="mapFrame"
+        src="https://www.openstreetmap.org/export/embed.html?bbox=101.5%2C3.0%2C101.6%2C3.1&layer=mapnik"
+        style="border: 1px solid black"
+        allowfullscreen
+      ></iframe>
+    </div>
+  </main>
+
+  <script>
+    const centerList = document.getElementById('centerList');
+    const addCenterForm = document.getElementById('addCenterForm');
+    const mapFrame = document.getElementById('mapFrame');
+    const searchInput = document.getElementById('searchInput');
+
+    let centers = [];
+
+    function renderCenters(filter = '') {
+      centerList.innerHTML = '';
+      const filteredCenters = centers.filter(center =>
+        center.name.toLowerCase().includes(filter.toLowerCase())
+      );
+      filteredCenters.forEach(center => {
+        const div = document.createElement('div');
+        div.className = 'center-item';
+
+        const img = document.createElement('img');
+        img.src = center.image || 'https://via.placeholder.com/60';
+        div.appendChild(img);
+
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'center-info';
+
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'center-name';
+        nameDiv.textContent = center.name;
+        infoDiv.appendChild(nameDiv);
+
+        const addressDiv = document.createElement('div');
+        addressDiv.className = 'center-address';
+        addressDiv.textContent = center.address;
+        infoDiv.appendChild(addressDiv);
+
+        div.appendChild(infoDiv);
+        centerList.appendChild(div);
+      });
+    }
+
+    function fetchCenters() {
+      fetch('http://localhost:5000/api/fertility-centers-nearby?latitude=3.0&longitude=101.5&radius=100')
+        .then(res => res.json())
+        .then(data => {
+          centers = data;
+          renderCenters();
+          updateMapMarkers();
+        })
+        .catch(() => {
+          centerList.innerHTML = '<p>Error loading fertility centers.</p>';
+        });
+    }
+
+    function updateMapMarkers() {
+      // For simplicity, reload map with markers for centers
+      // Construct bbox to include all centers
+      if (centers.length === 0) return;
+      let minLat = centers[0].coordinates.latitude;
+      let maxLat = centers[0].coordinates.latitude;
+      let minLng = centers[0].coordinates.longitude;
+      let maxLng = centers[0].coordinates.longitude;
+      centers.forEach(c => {
+        if (c.coordinates.latitude < minLat) minLat = c.coordinates.latitude;
+        if (c.coordinates.latitude > maxLat) maxLat = c.coordinates.latitude;
+        if (c.coordinates.longitude < minLng) minLng = c.coordinates.longitude;
+        if (c.coordinates.longitude > maxLng) maxLng = c.coordinates.longitude;
+      });
+      // Add some padding
+      minLat -= 0.01;
+      maxLat += 0.01;
+      minLng -= 0.01;
+      maxLng += 0.01;
+      const bbox = `${minLng},${minLat},${maxLng},${maxLat}`;
+      mapFrame.src = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&markers=${centers.map(c => c.coordinates.latitude + ',' + c.coordinates.longitude).join('|')}`;
+    }
+
+    addCenterForm.addEventListener('submit', e => {
+      e.preventDefault();
+      const name = document.getElementById('name').value.trim();
+      const address = document.getElementById('address').value.trim();
+      const latitude = parseFloat(document.getElementById('latitude').value);
+      const longitude = parseFloat(document.getElementById('longitude').value);
+      const image = document.getElementById('image').value.trim();
+
+      if (!name || !address || isNaN(latitude) || isNaN(longitude)) {
+        alert('Please fill in all required fields correctly.');
+        return;
+      }
+
+      fetch('http://localhost:5000/api/fertility-centers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, address, latitude, longitude, image })
+      })
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to add fertility center');
+        return res.json();
+      })
+      .then(() => {
+        alert('Fertility center added successfully');
+        addCenterForm.reset();
+        fetchCenters();
+      })
+      .catch(err => alert(err.message));
+    });
+
+    searchInput.addEventListener('input', () => {
+      renderCenters(searchInput.value);
+    });
+
+    window.onload = () => {
+      fetchCenters();
+    };
+  </script>
+</body>
+</html>

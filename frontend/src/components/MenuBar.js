@@ -10,7 +10,6 @@ const MenuBar = ({ menuVisible, setMenuVisible, menuButtonPosition, navigation }
   const menuAnimation = useRef(new Animated.Value(-screenWidth)).current;
 
   useEffect(() => {
-    console.log("Menu Visibility:", menuVisible); // Debugging menu state
     Animated.timing(menuAnimation, {
       toValue: menuVisible ? 0 : -screenWidth,
       duration: 300,
@@ -42,23 +41,25 @@ const MenuBar = ({ menuVisible, setMenuVisible, menuButtonPosition, navigation }
         </View>
 
         {/* Menu Items */}
-        {["Home", "Chat", "Period Calendar", "Community", "Women Led Businesses", "Health Support"].map((item, index) => (
-          <TouchableOpacity key={index} style={styles.menuItem} onPress={() => {
-            setMenuVisible(false);
-            if (item === "Home") {
-              navigation.navigate('Period'); // Navigate to Period.js
-            } else if (item === "Community") {
-              navigation.navigate('Community'); // Navigate to Community.js
-            } else if (item === "Women Led Businesses") {
-              navigation.navigate('Business'); // Navigate to Business.js
-            } else if (item === "Chat") {
-              navigation.navigate('Chat'); // Navigate to Chat.js
-            } else if (item === "Period Calendar") {
-            navigation.navigate('Calendar'); // Navigate to Calendar.js
-            } else if (item === "Health Support") {
-            navigation.navigate('FertilityMap'); // Navigate to FertilityMap.js
-            }
-          }}>
+        {["Home", "Period Calendar", "Community", "Women Led Businesses", "Health Support"].map((item, index) => (
+          <TouchableOpacity
+            key={index}
+            style={styles.menuItem}
+            onPress={() => {
+              setMenuVisible(false);
+              if (item === "Home") {
+                navigation.navigate("Period"); // Navigate to Period.js
+              } else if (item === "Community") {
+                navigation.navigate("Community"); // Navigate to Community.js
+              } else if (item === "Women Led Businesses") {
+                navigation.navigate("Business"); // Navigate to Business.js
+              } else if (item === "Period Calendar") {
+                navigation.navigate("Calendar"); // Navigate to Calendar.js
+              } else if (item === "Health Support") {
+                navigation.navigate("FertilityMap"); // Navigate to FertilityMap.js
+              }
+            }}
+          >
             <Text style={styles.menuText}>{item}</Text>
           </TouchableOpacity>
         ))}
@@ -93,9 +94,9 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   iconContainer: {
-    flexDirection: 'row', // Align icons horizontally
-    justifyContent: 'space-between', // Space between icons
-    alignItems: 'center', // Center icons vertically
+    flexDirection: "row", // Align icons horizontally
+    justifyContent: "space-between", // Space between icons
+    alignItems: "center", // Center icons vertically
     marginBottom: 20,
   },
   menuItem: {
@@ -110,8 +111,8 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 18,
     fontWeight: "bold",
-    textAlign: "left"
+    textAlign: "left",
   },
 });
 
-export default MenuBar;
+export default MenuBar;

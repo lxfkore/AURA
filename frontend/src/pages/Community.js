@@ -18,6 +18,12 @@ const Community = ({ navigation }) => {
     const [category, setCategory] = useState('blog'); // Add a state variable for category
     const route = useRoute();
 
+    // Map category string to category_id integer
+    const categoryMap = {
+        blog: 1,
+        questionnaire: 2,
+    };
+
     useEffect(() => {
         const postText = route.params?.postText;
         if (postText) {
@@ -35,7 +41,7 @@ const Community = ({ navigation }) => {
     useEffect(() => {
         const fetchPosts = async () => {
             try {
-                const response = await fetch(`http://192.168.99.94:5000/api/posts?category=${category}`);
+                const response = await fetch(`http://192.168.0.102:5000/api/posts?category=${category}`);
                 if (response.ok) {
                     const data = await response.json();
                     setPosts(data.map(post => ({ ...post, comments: post.comments || [] })));
@@ -74,27 +80,44 @@ const Community = ({ navigation }) => {
         loadLikes();
     }, []);
 
-    useEffect(() => {
-        const loadSavedPosts = async () => {
-            try {
-                const savedData = await AsyncStorage.getItem('savedPosts');
-                if (savedData) {
-                    const savedPosts = JSON.parse(savedData);
-                    if (savedPosts.length > 0) {
-                        setPosts((prevPosts) => {
-                            return prevPosts.map((post) => ({
-                                ...post,
-                                saved: savedPosts.some((savedPost) => savedPost.post_id === post.post_id),
-                            }));
-                        });
-                    }
+useEffect(() => {
+    const loadSavedPostsFromBackend = async () => {
+        try {
+            let userId = await AsyncStorage.getItem('userId'); // Assuming userId is stored in AsyncStorage
+            console.log('Community.js: Retrieved userId from AsyncStorage:', userId);
+            if (!userId) {
+                console.warn('User ID not found in AsyncStorage, retrying...');
+                // Retry after a short delay
+                await new Promise(resolve => setTimeout(resolve, 500));
+                userId = await AsyncStorage.getItem('userId');
+                console.log('Community.js: Retrieved userId from AsyncStorage after retry:', userId);
+                if (!userId) {
+                    console.error('User ID still not found in AsyncStorage after retry');
+                    // Optionally, navigate to login or show alert
+                    // navigation.replace('Login');
+                    return;
                 }
-            } catch (error) {
-                console.error('Error loading saved posts:', error);
             }
-        };
-        loadSavedPosts();
-    }, [posts]);
+            if (category === 'saved') {
+                const response = await fetch(`http://192.168.0.102:5000/api/saved-posts/${userId}`);
+                if (response.ok) {
+                    const savedPosts = await response.json();
+                    setPosts((prevPosts) => {
+                        return prevPosts.map((post) => ({
+                            ...post,
+                            saved: savedPosts.some((savedPost) => savedPost.post_id === post.post_id),
+                        }));
+                    });
+                } else {
+                    console.error('Failed to fetch saved posts:', response.statusText);
+                }
+            }
+        } catch (error) {
+            console.error('Error loading saved posts:', error);
+        }
+    };
+    loadSavedPostsFromBackend();
+}, [category]);
 
     const handleLike = async (postId) => {
         setPosts((prevPosts) => {
@@ -105,7 +128,7 @@ const Community = ({ navigation }) => {
         });
     
         try {
-            const response = await fetch(`http://192.168.99.94:5000/api/posts/${postId}/like`, {
+            const response = await fetch(`http://192.168.0.102:5000/api/posts/${postId}/like`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
             });
@@ -135,7 +158,7 @@ const Community = ({ navigation }) => {
     if (!commentText) return; // Prevent empty comments
 
     try {
-        const response = await fetch("http://192.168.99.94:5000/api/comments", {
+        const response = await fetch("http://192.168.0.102:5000/api/comments", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ comment_text: commentText, post_id: postId }),
@@ -164,16 +187,44 @@ const Community = ({ navigation }) => {
 };
 
 const handleSave = async (postId) => {
+    const postToSave = posts.find(post => post.post_id === postId);
+    if (!postToSave) return;
+
+    const newSavedState = !postToSave.saved;
     setPosts((prevPosts) =>
         prevPosts.map((post) =>
-            post.post_id === postId ? { ...post, saved: !post.saved } : post
+            post.post_id === postId ? { ...post, saved: newSavedState } : post
         )
     );
 
     try {
-        const savedPosts = posts.filter((post) => post.saved);
-        await AsyncStorage.setItem('savedPosts', JSON.stringify(savedPosts.map(post => ({ post_id: post.post_id }))));
-        console.log('Saved posts:', await AsyncStorage.getItem('savedPosts'));
+        const userId = await AsyncStorage.getItem('userId'); // Assuming userId is stored in AsyncStorage
+        if (!userId) {
+            console.error('User ID not found in AsyncStorage');
+            return;
+        }
+
+        if (newSavedState) {
+            // Save post via backend API
+            const response = await fetch('http://192.168.0.102:5000/api/saved-posts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: parseInt(userId), post_id: postId }),
+            });
+            if (!response.ok) {
+                console.error('Failed to save post:', await response.text());
+            }
+        } else {
+            // Unsave post via backend API
+            const response = await fetch('http://192.168.0.102:5000/api/saved-posts', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: parseInt(userId), post_id: postId }),
+            });
+            if (!response.ok) {
+                console.error('Failed to unsave post:', await response.text());
+            }
+        }
     } catch (error) {
         console.error('Error saving post:', error);
     }
@@ -218,9 +269,7 @@ const loadSavedPosts = async () => {
                     <FontAwesome name="bars" size={24} color="black" />
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.bellButton}>
-                    <FontAwesome name="envelope" size={24} color="black" />
-                </TouchableOpacity>
+            {/* Envelope icon removed as per user request */}
             </View>
 
             {/* "Community" Label Below Menu Button */}
@@ -254,55 +303,55 @@ const loadSavedPosts = async () => {
 
             {/* Posts */}
             <ScrollView style={styles.posts}>
-            {posts
-        .filter((post) => category === "saved" ? post.saved : post.post_category === category)
-        .map((post) => (
-                    <View key={post.post_id} style={styles.post}>
-                        <Text style={styles.postTitle}>{post.post_name}</Text>
-                        <View style={styles.postStats}>
-                            <View style={{ flexDirection: "row", flex: 1 }}>
-                                <TouchableOpacity onPress={() => handleLike(post.post_id)}>
-                                    <FontAwesome name="heart" size={16} color={post.likes > 0 ? "#db7a80" : "white"} />
-                                </TouchableOpacity>
-                                <Text style={styles.statsText}>{post.likes} likes</Text>
-                                <View style={{ marginRight: 10 }}></View>
-                                <TouchableOpacity onPress={() => console.log("Comment button pressed")}>
-                                    <FontAwesome name="comment" size={16} color="white" />
-                                </TouchableOpacity>
-                                <Text style={styles.statsText}>
-                                    {Array.isArray(post.comments) ? post.comments.length : 0} comments
-                                </Text>
-                            </View>
-                            <TouchableOpacity onPress={() => handleSave(post.post_id)} style={{ position: "absolute", right: 0 }}>
-                                <FontAwesome name="bookmark" size={16} color={post.saved ? "#db7a80" : "white"} />
-                            </TouchableOpacity>
-                        </View>
-
-                        {/* Comments */}
-                        <View style={styles.comments}>
-                            {post.comments.map((comment, commentIndex) => (
-                                <View key={commentIndex} style={styles.comment}>
-                                    <Text style={styles.commentText}>{comment.text}</Text>
-                                    <View style={styles.commentStats}>
-                                        <TouchableOpacity onPress={() => console.log("Like button pressed")}>
-                                            <FontAwesome name="heart" size={12} color={comment.likes > 0 ? "#db7a80" : "white"} />
-                                        </TouchableOpacity>
-                                        <Text style={styles.commentStatsText}>{comment.likes} likes</Text>
-                                    </View>
+                {posts
+                    .filter((post) => category === "saved" ? post.saved : post.category_id === categoryMap[category])
+                    .map((post) => (
+                        <View key={post.post_id} style={styles.post}>
+                            <Text style={styles.postTitle}>{post.post_name}</Text>
+                            <View style={styles.postStats}>
+                                <View style={{ flexDirection: "row", flex: 1 }}>
+                                    <TouchableOpacity onPress={() => handleLike(post.post_id)}>
+                                        <FontAwesome name="heart" size={16} color={post.likes > 0 ? "#db7a80" : "white"} />
+                                    </TouchableOpacity>
+                                    <Text style={styles.statsText}>{post.likes} likes</Text>
+                                    <View style={{ marginRight: 10 }}></View>
+                                    <TouchableOpacity onPress={() => console.log("Comment button pressed")}>
+                                        <FontAwesome name="comment" size={16} color="white" />
+                                    </TouchableOpacity>
+                                    <Text style={styles.statsText}>
+                                        {Array.isArray(post.comments) ? post.comments.length : 0} comments
+                                    </Text>
                                 </View>
-                            ))}
-                            <TextInput
+                                <TouchableOpacity onPress={() => handleSave(post.post_id)} style={{ position: "absolute", right: 0 }}>
+                                    <FontAwesome name="bookmark" size={16} color={post.saved ? "#db7a80" : "white"} />
+                                </TouchableOpacity>
+                            </View>
+
+                            {/* Comments */}
+                            <View style={styles.comments}>
+                                {post.comments.map((comment, commentIndex) => (
+                                    <View key={commentIndex} style={styles.comment}>
+                                        <Text style={styles.commentText}>{comment.text}</Text>
+                                        <View style={styles.commentStats}>
+                                            <TouchableOpacity onPress={() => console.log("Like button pressed")}>
+                                                <FontAwesome name="heart" size={12} color={comment.likes > 0 ? "#db7a80" : "white"} />
+                                            </TouchableOpacity>
+                                            <Text style={styles.commentStatsText}>{comment.likes} likes</Text>
+                                        </View>
+                                    </View>
+                                ))}
+                                <TextInput
                                     style={styles.newCommentInput}
                                     placeholder="Write a comment..."
                                     value={newComments[post.post_id] || ""}
                                     onChangeText={(text) => handleInputChange(post.post_id, text)}
                                 />
-                            <TouchableOpacity style={styles.postCommentButton} onPress={() => handleComment(post.post_id)}>
-                                <Text style={styles.postCommentButtonText}>Post Comment</Text>
-                            </TouchableOpacity>
+                                <TouchableOpacity style={styles.postCommentButton} onPress={() => handleComment(post.post_id)}>
+                                    <Text style={styles.postCommentButtonText}>Post Comment</Text>
+                                </TouchableOpacity>
+                            </View>
                         </View>
-                    </View>
-                ))}
+                    ))}
             </ScrollView>
 
             {/* Floating Button */}
@@ -312,8 +361,8 @@ const loadSavedPosts = async () => {
             >
                 <FontAwesome name="plus" size={24} color="white" />
             </TouchableOpacity>
-                    </View>
-        );
+        </View>
+    );
 };
 
 const styles = StyleSheet.create({

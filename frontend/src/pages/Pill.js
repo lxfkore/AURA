@@ -8,18 +8,21 @@ import {
   ScrollView,
   Alert,
 } from "react-native";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FontAwesome } from "@expo/vector-icons";
 import { useFonts } from "expo-font";
 import { OpenSans_700Bold } from "@expo-google-fonts/open-sans";
 import MenuBar from "../components/MenuBar";
 
-const Pill = ({ navigation }) => {
+const Pill = ({ navigation, route }) => {
+  const { getIntakeStatusId } = route.params || {};
   const [fontsLoaded] = useFonts({ "OpenSans-Bold": OpenSans_700Bold });
   const [menuVisible, setMenuVisible] = useState(false);
   const [menuButtonPosition, setMenuButtonPosition] = useState({ x: 0, y: 0 });
 
   const [pillForms, setPillForms] = useState([
     {
+      id: null,
       pillName: "",
       intake: "1",
       description: "",
@@ -58,6 +61,7 @@ const Pill = ({ navigation }) => {
     setPillForms([
       ...pillForms,
       {
+        id: null,
         pillName: "",
         intake: "1",
         description: "",
@@ -73,6 +77,159 @@ const Pill = ({ navigation }) => {
     updatedForms[index][field] = value;
     setPillForms(updatedForms);
   };
+
+const handleDeletePill = async (index) => {
+    const pillToDelete = pillForms[index];
+    if (pillToDelete.id === null) {
+      // Just remove from UI if not saved yet
+      const updatedForms = pillForms.filter((_, i) => i !== index);
+      setPillForms(updatedForms);
+      return;
+    }
+    try {
+      const response = await fetch(`http://192.168.0.102:5000/api/pills/${pillToDelete.id}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        throw new Error('Failed to delete pill');
+      }
+      const updatedForms = pillForms.filter((_, i) => i !== index);
+      setPillForms(updatedForms);
+    } catch (error) {
+      alert('Error deleting pill: ' + error.message);
+    }
+  };
+
+  const handleSave = async () => {
+    // Validate all forms
+    for (let i = 0; i < pillForms.length; i++) {
+      const pill = pillForms[i];
+      if (!pill.pillName.trim()) {
+        alert(`Pill name is required for entry ${i + 1}`);
+        return;
+      }
+      if (!pill.intake || isNaN(pill.intake) || Number(pill.intake) <= 0) {
+        alert(`Valid intake number is required for entry ${i + 1}`);
+        return;
+      }
+      if (pill.dateError) {
+        alert(`Please fix the date for entry ${i + 1}`);
+        return;
+      }
+    }
+
+    try {
+      const userId = await AsyncStorage.getItem('userId');
+      if (!userId) {
+        alert('User not logged in');
+        return;
+      }
+      
+      for (const pill of pillForms) {
+      const pillStatus = 'defaultStatus';
+      if (typeof getIntakeStatusId !== 'function') {
+        alert('getIntakeStatusId is not a valid function');
+        return;
+      }
+      const payload = {
+        user_id: userId,
+        pillName: pill.pillName,
+        intake: Number(pill.intake),
+        description: pill.description,
+        prescribedDate: pill.prescribedDateInput,
+        intake_status_id: getIntakeStatusId(pillStatus), 
+      };
+        
+        let response;
+        if (pill.id) {
+          // Update existing pill
+          response = await fetch(`http://192.168.0.102:5000/api/pills/${pill.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+        } else {
+          // Create new pill
+          response = await fetch('http://192.168.0.102:5000/api/pills', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+        }
+        
+        if (!response.ok) {
+          throw new Error('Failed to save pill');
+        }
+        
+        const data = await response.json();
+        // Update local state with new ID for future updates
+        if (data.id) {
+          const updatedForms = pillForms.map(p => 
+            p.id === pill.id ? { ...p, id: data.id } : p
+          );
+          setPillForms(updatedForms);
+        }
+      }
+      
+      alert('Pill information saved successfully!');
+      fetchPills();
+    } catch (error) {
+      alert('Error saving pills: ' + error.message);
+    }
+  };
+
+  const fetchPills = async () => {
+    try {
+      const userId = await AsyncStorage.getItem('userId');
+      if (!userId) {
+        // No user logged in, set default empty form
+        setPillForms([{
+          id: null,
+          pillName: "",
+          intake: "1",
+          description: "",
+          prescribedDateInput: "",
+          prescribedDate: new Date(),
+          dateError: false,
+        }]);
+        return;
+      }
+      // Fetch pills for the user
+      const response = await fetch(`http://192.168.0.102:5000/api/pills/user/${userId}`);
+      if (!response.ok) throw new Error('Failed to fetch pills');
+      const data = await response.json();
+      if (data.length === 0) {
+        // No pills recorded, set default empty form
+        setPillForms([{
+          id: null,
+          pillName: "",
+          intake: "1",
+          description: "",
+          prescribedDateInput: "",
+          prescribedDate: new Date(),
+          dateError: false,
+        }]);
+      } else {
+        // Map data to pillForms format
+        const mapped = data.map(pill => ({
+          id: pill.id,
+          pillName: pill.name,
+          intake: pill.intake_no.toString(),
+          description: pill.description,
+          prescribedDateInput: pill.date_prescribed,
+          prescribedDate: new Date(pill.date_prescribed),
+          dateError: false,
+        }));
+        setPillForms(mapped);
+      }
+    } catch (error) {
+      alert('Error fetching pills: ' + error.message);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchPills();
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -106,6 +263,12 @@ const Pill = ({ navigation }) => {
       <ScrollView style={styles.formContainer}>
         {pillForms.map((pill, index) => (
           <View style={styles.inputBox} key={index}>
+            <TouchableOpacity
+              style={styles.deleteIconRight}
+              onPress={() => handleDeletePill(index)}
+            >
+              <FontAwesome name="trash" size={20} color="black" />
+            </TouchableOpacity>
             <TextInput
               placeholder="Pill name..."
               style={styles.pillName}
@@ -155,7 +318,7 @@ const Pill = ({ navigation }) => {
         </TouchableOpacity>
 
         {/* Save Button */}
-        <TouchableOpacity style={styles.saveButton}>
+        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
           <Text style={styles.saveText}>Save</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -192,6 +355,13 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 14,
     marginBottom: 20,
+    position: "relative",
+  },
+  deleteIconRight: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    zIndex: 10,
   },
   pillName: {
     fontSize: 16,

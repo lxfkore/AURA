@@ -1,25 +1,96 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   Switch,
+  Alert,
   Modal,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import MenuBar from '../components/MenuBar';
+import { Ionicons, FontAwesome } from '@expo/vector-icons';
 
-export default function Profile() {
-  const [isPregnant, setIsPregnant] = useState(false);
+export default function Profile({ navigation }) {
+  const [pregnancyStatusId, setPregnancyStatusId] = useState(null);
+  const [pregnancyOptions, setPregnancyOptions] = useState([
+    { id: 1, status: 'yes' },
+    { id: 2, status: 'no' }
+  ]);
+  const [email, setEmail] = useState('');  // New state for email
   const [showBusinessModal, setShowBusinessModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [menuButtonPosition, setMenuButtonPosition] = useState({ x: 0, y: 0 });
 
-  const toggleSwitch = () => setIsPregnant(previousState => !previousState);
+  useEffect(() => {
+    // Fetch current user data from backend
+    const fetchUserData = async () => {
+      try {
+        const userId = await AsyncStorage.getItem('userId');
+        console.log('Retrieved userId from AsyncStorage:', userId);
+        if (!userId) return;
+        const response = await fetch(`http://192.168.0.102:5000/api/users/${userId}`);
+        console.log('Response status:', response.status);
+        if (!response.ok) throw new Error('Failed to fetch user data');
+        const userData = await response.json();
+        console.log('Fetched user data:', userData);
+        setPregnancyStatusId(userData.pregnancy_status_id || 2);
+        setEmail(userData.email || '');
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
+    fetchUserData();
+  }, []);
+
+  const updatePregnancyStatus = async (newStatusId) => {
+  try {
+    console.log('Updating pregnancy status to:', newStatusId);
+    setPregnancyStatusId(newStatusId); // Update local state
+    const userId = await AsyncStorage.getItem('userId'); // Get stored user ID
+    console.log('User ID from AsyncStorage:', userId);
+    if (!userId) return;
+
+    // Send PUT request to update the backend
+    const response = await fetch(`http://192.168.0.102:5000/api/users/${userId}/pregnancy-status`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pregnancy_status_id: newStatusId }), // Send the new status ID
+    });
+
+    console.log('Response status:', response.status);
+    if (!response.ok) throw new Error('Failed to update pregnancy status');
+    Alert.alert('Success', 'Pregnancy status updated successfully'); // Optional: Show success message
+  } catch (error) {
+    console.error('Error updating pregnancy status:', error);
+    Alert.alert('Error', 'Failed to update pregnancy status. Please try again.');
+  }
+};
 
   return (
     <View style={styles.container}>
       {/* Hamburger Icon */}
-      <Ionicons name="menu" size={28} color="#fff" style={styles.menuIcon} />
+      <TouchableOpacity
+        onPress={() => setMenuVisible(!menuVisible)}
+        onLayout={(event) => {
+          const { x, y } = event.nativeEvent.layout;
+          setMenuButtonPosition({ x, y });
+        }}
+      >
+        <FontAwesome name="bars" size={24} color="white" />
+      </TouchableOpacity>
+
+      {menuVisible && (
+        <MenuBar
+          menuVisible={menuVisible}
+          setMenuVisible={setMenuVisible}
+          menuButtonPosition={menuButtonPosition}
+          navigation={navigation}
+        />
+      )}
 
       {/* Profile Circle */}
       <View style={styles.profileCircle}>
@@ -27,21 +98,21 @@ export default function Profile() {
       </View>
 
       {/* Email Text */}
-      <Text style={styles.email}>liewhewthong@gmail.com</Text>
+      <Text style={styles.email}>{email || 'Loading email...'}</Text>
 
-      {/* Switch Mode Section */}
+      {/* Pregnancy Status Section */}
       <View style={styles.switchContainer}>
-        <Text style={styles.switchLabel}>Switch Mode:</Text>
+        <Text style={styles.switchLabel}>Pregnancy Status:</Text>
         <View style={styles.switchBox}>
           <Switch
-            value={isPregnant}
-            onValueChange={toggleSwitch}
+            value={pregnancyStatusId === 1} // Check if status is "yes" (id=1)
+            onValueChange={(value) => updatePregnancyStatus(value ? 1 : 2)} // Toggle between 1 and 2
             trackColor={{ false: '#444', true: '#FF5C8D' }}
             thumbColor="#fff"
             style={{ transform: [{ scaleX: 1.4 }, { scaleY: 1.4 }] }}
           />
           <Text style={styles.switchText}>
-            {isPregnant ? 'pregnant' : 'not pregnant'}
+            {pregnancyStatusId === 1 ? 'pregnant' : 'not pregnant'}
           </Text>
         </View>
       </View>
@@ -57,7 +128,53 @@ export default function Profile() {
           title="Delete my account"
           onPress={() => setShowDeleteModal(true)}
         />
+        <MenuItem
+          title="Log Out >"
+          onPress={() => setShowLogoutModal(true)}
+          textStyle={styles.logoutText}
+        />
       </View>
+
+      {/* Logout Modal */}
+      <Modal visible={showLogoutModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <Ionicons
+              name="log-out-outline"
+              size={40}
+              color="#000"
+              style={{ marginBottom: 10 }}
+            />
+            <Text style={styles.modalText}>
+              Are you sure you want to log out?
+            </Text>
+            <View style={styles.modalButtonRow}>
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={async () => {
+                  try {
+                    await AsyncStorage.clear();
+                    setShowLogoutModal(false);
+                    navigation.replace('Startup');
+                  } catch (error) {
+                    console.error('Error during logout:', error);
+                    alert('Failed to log out. Please try again.');
+                  }
+                }}
+              >
+                <Text style={styles.modalButtonText}>Yes</Text>
+              </TouchableOpacity>
+              <View style={styles.modalDivider} />
+              <TouchableOpacity
+                onPress={() => setShowLogoutModal(false)}
+                style={styles.modalButton}
+              >
+                <Text style={styles.modalButtonText}>No</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Business Inquiry Modal */}
       <Modal visible={showBusinessModal} transparent animationType="fade">
@@ -90,16 +207,38 @@ export default function Profile() {
               Are you sure that you want to delete this account?
             </Text>
             <View style={styles.modalButtonRow}>
-            <TouchableOpacity style={styles.modalButton}>
-              <Text style={styles.modalButtonText}>Yes</Text>
-                </TouchableOpacity>
-                <View style={styles.modalDivider} />
-                <TouchableOpacity
-                  onPress={() => setShowDeleteModal(false)}
-                  style={styles.modalButton}>
-                  <Text style={styles.modalButtonText}>No</Text>
-                </TouchableOpacity>
-          </View>
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={async () => {
+                  try {
+                    // Assuming user_id is 1 for demo, replace with actual user id
+                    const response = await fetch('http://192.168.0.102:5000/api/users/1', {
+                      method: 'DELETE',
+                    });
+                    if (response.ok) {
+                      // Successfully deleted user, handle logout or redirect
+                      alert('Account deleted successfully.');
+                      // Redirect to login or home screen
+                      // navigation.navigate('Login'); // Uncomment if navigation is available here
+                    } else {
+                      alert('Failed to delete account.');
+                    }
+                  } catch (error) {
+                    console.error('Error deleting account:', error);
+                    alert('Error deleting account.');
+                  }
+                  setShowDeleteModal(false);
+                }}
+              >
+                <Text style={styles.modalButtonText}>Yes</Text>
+              </TouchableOpacity>
+              <View style={styles.modalDivider} />
+              <TouchableOpacity
+                onPress={() => setShowDeleteModal(false)}
+                style={styles.modalButton}>
+                <Text style={styles.modalButtonText}>No</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -107,14 +246,14 @@ export default function Profile() {
   );
 }
 
-function MenuItem({ title, onPress }) {
+const MenuItem = ({ title, onPress }) => {
   return (
     <TouchableOpacity style={styles.menuItem} onPress={onPress}>
       <Text style={styles.menuText}>{title}</Text>
       <Ionicons name="chevron-forward" size={20} color="#000" />
     </TouchableOpacity>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {

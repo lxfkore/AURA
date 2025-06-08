@@ -1,9 +1,11 @@
+<!-- Save as aura/admin-dashboard/index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>AURA Admin Dashboard</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
   <style>
     body {
       margin: 0;
@@ -45,19 +47,23 @@
       border-radius: 12px;
       color: black;
       margin-bottom: 30px;
-      padding: 15px;
+      padding: 13px;
     }
 
     .section h2 {
       margin-top: 0;
-      font-size: 24x;
+      margin-bottom: 5px;
+      font-size: 24px;
       font-weight: bold;
     }
 
     .posts {
       display: flex;
-      gap: 10px;
-      overflow-x: auto;
+      flex-wrap: wrap;
+      gap: 12px;
+      max-height: 300px;
+      overflow-y: auto;
+      padding: 10px;
     }
 
     .post-card {
@@ -66,7 +72,6 @@
       padding: 15px;
       border-radius: 10px;
       width: 200px;
-      min-width: 200px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -81,60 +86,66 @@
       cursor: pointer;
     }
 
+    .edit-btn {
+      background-color: #db7a80;
+      border: none;
+      padding: 10px;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+      color: white;
+      margin-top: 7px;
+      width: 80%;
+    }
+
     .business-section {
       background-color: black;
-      padding: 20px;
+      padding: 0px;
       border-radius: 15px;
-      position: relative;
-    }
-
-    .top-right-controls {
-      position: absolute;
-      top: 10px;
-      right: 20px;
-    }
-
-    .top-right-controls button {
-      background: white;
-      color: black;
-      border: none;
-      font-weight: bold;
-      padding: 4px 10px;
-      margin-left: 5px;
-      border-radius: 5px;
-      cursor: pointer;
+      margin-top: 6px;
     }
 
     .businesses {
-      display: flex;
-      gap: 15px;
-      overflow-x: auto;
-      margin-top: 20px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 8px;
+      margin-top: 10px;
+      grid-auto-rows: minmax(300px, auto);
     }
 
     .business-card {
       background-color: white;
       border-radius: 15px;
       color: black;
-      width: 280px;
-      padding: 10px;
+      width: 100%;
+      padding: 12px;
       position: relative;
-      flex-shrink: 0;
       display: flex;
       flex-direction: column;
+    }
+
+    .category-input, .price-input, .address-input, .website-input, .whatsapp-input {
+      width: 90%;
+      padding: 7px;
+      margin-bottom: 3px;
+      border: 1px solid rgb(164, 164, 164);
+      border-radius: 15px;
+      background: transparent;
+      color: black;
     }
 
     .header {
       display: flex;
       align-items: center;
       gap: 10px;
+      width: 70%;
     }
 
     .header input {
       border: none;
       border-bottom: 1px solid #ccc;
       font-weight: bold;
-      font-size: 14px;
+      font-size: 17px;
       flex: 1;
     }
 
@@ -146,14 +157,8 @@
       background-color: #ddd;
     }
 
-    .business-info {
-      display: flex;
-      margin-top: 10px;
-      gap: 10px;
-    }
-
     .main-image {
-      width: 90px;
+      width: 270px;
       height: 70px;
       border-radius: 6px;
       object-fit: cover;
@@ -162,17 +167,8 @@
       align-items: center;
       justify-content: center;
       font-size: 24px;
+      margin-Bottom: 8px;
       color: gray;
-    }
-
-    .info-area {
-      flex: 1;
-      font-size: 13px;
-    }
-
-    .info-area[contenteditable="true"] {
-      border-bottom: 1px solid #ccc;
-      padding-bottom: 4px;
     }
 
     .actions {
@@ -239,13 +235,12 @@
 <body>
   <div class="sidebar">
     <h1>AURA</h1>
-    <a href="#">User Accounts</a>
-    <a href="#">Health Records</a>
-    <a href="#">Fertility Centers</a>
+    <a href="users.html">User Accounts</a>
+<a href="health.html">Health Records</a>
+    <a href="fertilitycenters.html">Fertility Centers</a>
   </div>
 
   <div class="main">
-    <!-- Search bar -->
     <div class="topbar">
       <div class="searchbar">
         <input type="text" placeholder="enter search..." />
@@ -253,111 +248,128 @@
       </div>
     </div>
 
-    <!-- Community Comments Section -->
     <div class="section">
       <h2>Community</h2>
-      <div class="posts">
-        <div class="post-card">
-          <p>Is it normal for my discharge to smell? I feel so insecure, can someone help?</p>
-          <button>View Comments</button>
-        </div>
-        <div class="post-card">
-          <p>How do I know if I'm ovulating right? I’m trying to conceive.</p>
-          <button>View Comments</button>
-        </div>
-        <div class="post-card">
-          <p>I forgot to take my pill yesterday. Will I be okay?</p>
-          <button>View Comments</button>
-        </div>
-      </div>
+      <div class="posts" id="postsContainer"></div>
     </div>
 
-    <!-- Business Section -->
     <h2>Businesses</h2>
     <div class="business-section">
-      <div class="top-right-controls">
-        <button onclick="scrollCards(-1)">&#60;</button>
-        <button onclick="scrollCards(1)">&#62;</button>
-      </div>
-
-      <div class="businesses" id="cardContainer">
-        <!-- Business cards rendered here -->
-      </div>
-
+      <div class="businesses" id="cardContainer"></div>
       <button class="floating-btn" id="addCardBtn" onclick="toggleAddCard()">+</button>
     </div>
   </div>
 
-  <!-- FontAwesome icons -->
-  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
-
-  <!-- Script -->
   <script>
     let addingCard = false;
 
-    const defaultCards = [
-      {
-        id: 1,
-        profile: "../assets/emma.png",
-        name: "Emma - Florist",
-        image: "../assets/flower.png",
-        info: "Florist & Delivery\nRM10 - RM30\nIpoh Garden East, Festival Walk"
-      },
-      {
-        id: 2,
-        profile: "../assets/anna.png",
-        name: "Dr Au Mei Zhen",
-        image: "../assets/counsellor.png",
-        info: "Counsellor (Online)\nRM200 per session\nPrivate sessions available online."
+    async function uploadImage(file) {
+      const formData = new FormData();
+      formData.append('file', file);
+      try {
+        const response = await fetch('http://localhost:5000/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        if (!response.ok) {
+          throw new Error(`Upload failed with status ${response.status}`);
+        }
+        const data = await response.json();
+        return data.imageUrl;
+      } catch (error) {
+        alert('Error uploading image: ' + error.message);
+        return null;
       }
-    ];
+    }
+
+    async function previewImage(event, id) {
+      event.preventDefault();
+      const file = event.target.files[0];
+      if (!file) return;
+      const imageUrl = await uploadImage(file);
+      if (imageUrl) {
+        document.getElementById(id).src = imageUrl;
+      }
+    }
 
     function createCard(data, editable = false) {
       const div = document.createElement("div");
       div.className = "business-card";
-
       div.innerHTML = `
         <div class="header">
           <label class="upload-btn">
-            <img src="${data.profile || ""}" class="profile" id="profile${data.id}" onclick="document.getElementById('profileInput${data.id}').click()" />
-            <input type="file" id="profileInput${data.id}" accept="image/*" onchange="previewImage(event, 'profile${data.id}')" />
+            <img src="${data.profile ? 'http://localhost:5000' + data.profile : ''}" class="profile" id="profile${data.id}" onclick="document.getElementById('profileInput${data.id}').click()" />
+            <input type="file" name="file" id="profileInput${data.id}" accept="image/*" **onchange="previewImage(event, 'profile${data.id}')"** />
           </label>
-          <input type="text" value="${data.name || ""}" placeholder="Profile Name" ${editable ? "" : "readonly"}>
+          <input type="text" class="name-input" value="${data.name || ""}" placeholder="Profile Name" ${editable ? "" : "readonly"}>
         </div>
 
         <div class="business-info">
           <label class="upload-btn">
             <div class="main-image" id="main${data.id}" onclick="document.getElementById('mainInput${data.id}').click()">
-              ${!data.image ? "+" : `<img src="${data.image}" class="main-image" style="object-fit: cover;" />`}
+              ${!data.image ? "+" : `<img src="${data.image ? 'http://localhost:5000' + data.image : ''}" class="main-image" />`}
             </div>
-            <input type="file" id="mainInput${data.id}" accept="image/*" onchange="previewImage(event, 'main${data.id}')" />
+          <input type="file" name="file" id="mainInput${data.id}" accept="image/*" **onchange="previewImage(event, 'main${data.id}')"** />
           </label>
-          <div class="info-area" contenteditable="${editable}" id="info${data.id}">${data.info || "Enter some info for business"}</div>
-        </div>
-
-        <div class="actions">
-          <i class="fa fa-pencil" onclick="toggleEdit(this, ${data.id})"></i>
-          <i class="fa fa-trash" onclick="deleteCard(${data.id})"></i>
+          <input type="text" class="category-input" placeholder="Category" value="${data.category || ""}" ${editable ? "" : "readonly"} />
+          <input type="text" class="price-input" placeholder="Price" value="${data.price || ""}" ${editable ? "" : "readonly"} />
+          <input type="text" class="address-input" placeholder="Address" value="${data.info || ""}" ${editable ? "" : "readonly"} />
+          <input type="text" class="website-input" placeholder="Website URL" value="${data.website_url || ""}" ${editable ? "" : "readonly"} />
+          <input type="text" class="whatsapp-input" placeholder="WhatsApp Number" value="${data.whatsapp_number || ""}" ${editable ? "" : "readonly"} />
+          <button class="edit-btn" onclick="toggleEdit(this, ${data.id})">Edit</button>
+          <i class="fa fa-trash" style="margin-left: 10px; cursor: pointer;" onclick="deleteCard(${data.id})"></i>
         </div>
       `;
       return div;
     }
 
-    function renderInitialCards() {
+    async function renderInitialCards() {
       const container = document.getElementById("cardContainer");
       container.innerHTML = "";
-      defaultCards.forEach(card => container.appendChild(createCard(card)));
+      try {
+        const res = await fetch("http://localhost:5000/api/businesses");
+        const data = await res.json();
+        data.forEach(biz => {
+          container.appendChild(createCard({
+            id: biz.id,
+            profile: biz.profile_image_url,
+            name: biz.name,
+            image: biz.main_image_url,
+            category: biz.category,
+            price: biz.price,
+            info: biz.address,
+            website_url: biz.website_url,
+            whatsapp_number: biz.whatsapp_number
+          }));
+        });
+      } catch (err) {
+        alert("Error fetching businesses: " + err.message);
+      }
     }
 
-    function scrollCards(dir) {
-      const container = document.getElementById("cardContainer");
-      container.scrollBy({ left: dir * 300, behavior: "smooth" });
+    async function fetchAndRenderPosts() {
+      const postsContainer = document.getElementById("postsContainer");
+      postsContainer.innerHTML = "";
+      try {
+        const res = await fetch("http://localhost:5000/api/posts");
+        const posts = await res.json();
+        posts.forEach(post => {
+          const postCard = document.createElement("div");
+          postCard.className = "post-card";
+          postCard.innerHTML = `
+            <p>${post.post_name || "No content"}</p>
+            <button onclick="window.location.href='comments.html?postId=${post.post_id}'">View Comments</button>
+          `;
+          postsContainer.appendChild(postCard);
+        });
+      } catch (err) {
+        alert("Failed to load posts: " + err.message);
+      }
     }
 
     function toggleAddCard() {
       const btn = document.getElementById("addCardBtn");
       const container = document.getElementById("cardContainer");
-
       if (!addingCard) {
         const newId = Date.now();
         const newCard = createCard({ id: newId }, true);
@@ -365,52 +377,105 @@
         btn.innerText = "✓";
         addingCard = true;
       } else {
-        btn.innerText = "+";
-        addingCard = false;
-      }
-    }
-
-    function toggleEdit(icon, id) {
-      const card = icon.closest(".business-card");
-      const input = card.querySelector("input[type='text']");
-      const info = card.querySelector(".info-area");
-
-      const isEditing = !input.hasAttribute("readonly");
-      if (isEditing) {
-        input.setAttribute("readonly", true);
-        info.setAttribute("contenteditable", false);
-        icon.classList.remove("fa-check");
-        icon.classList.add("fa-pencil");
-      } else {
-        input.removeAttribute("readonly");
-        info.setAttribute("contenteditable", true);
-        icon.classList.remove("fa-pencil");
-        icon.classList.add("fa-check");
+        const newCard = container.lastElementChild;
+        const name = newCard.querySelector(".name-input");
+        const category = newCard.querySelector(".category-input");
+        const price = newCard.querySelector(".price-input");
+        const address = newCard.querySelector(".address-input");
+        const website_url = newCard.querySelector(".website-input");
+        const whatsapp_number = newCard.querySelector(".whatsapp-input");
+      const data = {
+        name: name.value,
+        category: category.value,
+        price: price.value,
+        address: address.value,
+        website_url: website_url.value,
+        whatsapp_number: whatsapp_number.value,
+        profile_image_url: newCard.querySelector(".profile").src,
+        main_image_url: newCard.querySelector(".main-image img")?.src || "",
+      };
+        fetch("http://localhost:5000/api/businesses", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data)
+        }).then(res => {
+          if (!res.ok) throw new Error("Failed to add business");
+          return res.json();
+        }).then(() => {
+          addingCard = false;
+          btn.innerText = "+";
+          renderInitialCards();
+        }).catch(err => alert(err.message));
       }
     }
 
     function deleteCard(id) {
-      const card = document.getElementById(`profile${id}`).closest(".business-card");
-      card.remove();
+      if (!confirm("Delete this business?")) return;
+      fetch(`http://localhost:5000/api/businesses/${id}`, {
+        method: "DELETE"
+      }).then(() => renderInitialCards())
+        .catch(err => alert("Error deleting: " + err.message));
     }
 
-    function previewImage(event, id) {
-      const file = event.target.files[0];
-      if (!file) return;
+    function toggleEdit(button, id) {
+      const card = button.closest(".business-card");
+      const inputs = card.querySelectorAll("input");
+      const isEditing = [...inputs].some(i => !i.hasAttribute("readonly"));
 
-      const reader = new FileReader();
-      reader.onload = function () {
-        const el = document.getElementById(id);
-        if (el.tagName === "IMG") {
-          el.src = reader.result;
-        } else {
-          el.innerHTML = `<img src="${reader.result}" class="main-image" style="object-fit: cover;" />`;
-        }
+      if (isEditing) {
+      const name = card.querySelector(".name-input");
+      const category = card.querySelector(".category-input");
+      const price = card.querySelector(".price-input");
+      const address = card.querySelector(".address-input");
+      const website_url = card.querySelector(".website-input");
+      const whatsapp_number = card.querySelector(".whatsapp-input");
+      const data = {
+        name: name.value,
+        category: category.value,
+        price: price.value,
+        address: address.value,
+        website_url: website_url.value,
+        whatsapp_number: whatsapp_number.value,
       };
-      reader.readAsDataURL(file);
+
+      async function uploadImagesAndUpdate() {
+        try {
+          if (card.querySelector("#profileInput" + id).files[0]) {
+            data.profile_image_url = await uploadImage(card.querySelector("#profileInput" + id).files[0]);
+          } else {
+            data.profile_image_url = card.querySelector(".profile").src;
+          }
+          if (card.querySelector("#mainInput" + id).files[0]) {
+            data.main_image_url = await uploadImage(card.querySelector("#mainInput" + id).files[0]);
+          } else {
+            data.main_image_url = card.querySelector(".main-image img")?.src || "";
+          }
+
+          const res = await fetch(`http://localhost:5000/api/businesses/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+          });
+          if (!res.ok) throw new Error("Failed to update");
+          alert("Business updated!");
+          inputs.forEach(i => i.setAttribute("readonly", true));
+          button.textContent = "Edit";
+        } catch (err) {
+          alert(err.message);
+        }
+      }
+
+      uploadImagesAndUpdate();
+      } else {
+        inputs.forEach(i => i.removeAttribute("readonly"));
+        button.textContent = "Update";
+      }
     }
 
-    window.onload = renderInitialCards;
+    window.onload = () => {
+      renderInitialCards();
+      fetchAndRenderPosts();
+    };
   </script>
 </body>
 </html>

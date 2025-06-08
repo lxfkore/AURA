@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Community Comments</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #000;
+      color: white;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      padding: 10px 20px;
+      background-color: black;
+      border-bottom: 1px solid #333;
+    }
+    .menu-icon {
+      font-size: 24px;
+      cursor: pointer;
+      margin-right: 20px;
+    }
+    h1 {
+      flex-grow: 1;
+      font-weight: bold;
+      font-size: 24px;
+      margin: 0;
+    }
+    .searchbar {
+      display: flex;
+      align-items: center;
+      background: white;
+      border-radius: 20px;
+      padding: 5px 10px;
+    }
+    .searchbar input {
+      border: none;
+      outline: none;
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 14px;
+    }
+    .searchbar i {
+      color: black;
+      margin-left: 8px;
+    }
+    main {
+      background-color: black;
+      margin: 20px;
+      border-radius: 15px;
+      padding: 20px;
+      min-height: 400px;
+    }
+    .post-title {
+      font-weight: bold;
+      font-size: 18px;
+      margin-bottom: 20px;
+    }
+    .comments-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 15px;
+    }
+    .comment-card {
+      background-color: #eee;
+      color: black;
+      border-radius: 15px;
+      padding: 15px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 100px;
+    }
+    .comment-avatar {
+      width: 30px;
+      height: 30px;
+      background-color: #ccc;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .comment-text {
+      flex-grow: 1;
+      font-size: 14px;
+      line-height: 1.3;
+    }
+    .delete-icon {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      cursor: pointer;
+      color: #555;
+      font-size: 18px;
+    }
+    .pagination {
+      margin-top: 20px;
+      text-align: right;
+      color: white;
+      font-size: 18px;
+      user-select: none;
+    }
+    .pagination span {
+      cursor: pointer;
+      margin-left: 10px;
+      margin-right: 10px;
+      padding: 5px 10px;
+      border-radius: 5px;
+      background-color: #222;
+    }
+    .pagination span:hover {
+      background-color: #444;
+    }
+  </style>
+  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+</head>
+<body>
+  <header>
+    <i class="fas fa-bars menu-icon"></i>
+    <h1>Community</h1>
+    <div class="searchbar">
+      <input type="text" placeholder="enter search..." id="searchInput" />
+      <i class="fa fa-search"></i>
+    </div>
+  </header>
+  <main>
+    <div class="post-title" id="postTitle">Loading...</div>
+    <div class="comments-grid" id="commentsGrid"></div>
+    <div class="pagination" id="paginationControls">
+      <span id="prevPage"><</span>
+      <span id="nextPage">></span>
+    </div>
+  </main>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const postId = urlParams.get('postId');
+    const postTitleEl = document.getElementById('postTitle');
+    const commentsGrid = document.getElementById('commentsGrid');
+    const prevPageBtn = document.getElementById('prevPage');
+    const nextPageBtn = document.getElementById('nextPage');
+
+    let comments = [];
+    let currentPage = 1;
+    const commentsPerPage = 6;
+
+    function renderComments() {
+      commentsGrid.innerHTML = '';
+      const start = (currentPage - 1) * commentsPerPage;
+      const end = start + commentsPerPage;
+      const pageComments = comments.slice(start, end);
+
+      pageComments.forEach(comment => {
+        const card = document.createElement('div');
+        card.className = 'comment-card';
+
+        const avatar = document.createElement('div');
+        avatar.className = 'comment-avatar';
+
+        const text = document.createElement('div');
+        text.className = 'comment-text';
+        text.textContent = comment.comment_text;
+
+        const deleteIcon = document.createElement('i');
+        deleteIcon.className = 'fas fa-trash delete-icon';
+        deleteIcon.title = 'Delete comment';
+        deleteIcon.onclick = () => deleteComment(comment.comment_id);
+
+        card.appendChild(avatar);
+        card.appendChild(text);
+        card.appendChild(deleteIcon);
+
+        commentsGrid.appendChild(card);
+      });
+
+      prevPageBtn.style.visibility = currentPage === 1 ? 'hidden' : 'visible';
+      nextPageBtn.style.visibility = end >= comments.length ? 'hidden' : 'visible';
+    }
+
+    function fetchPostTitle() {
+      fetch(`http://localhost:5000/api/posts`)
+        .then(res => res.json())
+        .then(data => {
+          const post = data.find(p => p.post_id == postId);
+          postTitleEl.textContent = post ? post.post_name : 'Post not found';
+        })
+        .catch(() => {
+          postTitleEl.textContent = 'Post not found';
+        });
+    }
+
+    function fetchComments() {
+      fetch(`http://localhost:5000/api/comments/${postId}`)
+        .then(res => res.json())
+        .then(data => {
+          comments = data;
+          renderComments();
+        })
+        .catch(() => {
+          commentsGrid.innerHTML = '<p>Error loading comments.</p>';
+        });
+    }
+
+    function deleteComment(commentId) {
+      if (!confirm('Delete this comment?')) return;
+      fetch(`http://localhost:5000/api/comments/${commentId}`, {
+        method: 'DELETE'
+      })
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to delete comment');
+        comments = comments.filter(c => c.comment_id !== commentId);
+        renderComments();
+      })
+      .catch(err => alert(err.message));
+    }
+
+    prevPageBtn.onclick = () => {
+      if (currentPage > 1) {
+        currentPage--;
+        renderComments();
+      }
+    };
+
+    nextPageBtn.onclick = () => {
+      if ((currentPage * commentsPerPage) < comments.length) {
+        currentPage++;
+        renderComments();
+      }
+    };
+
+    // Initial fetch
+    if (postId) {
+      fetchPostTitle();
+      fetchComments();
+    } else {
+      postTitleEl.textContent = 'No post selected';
+    }
+  </script>
+</body>
+</html>

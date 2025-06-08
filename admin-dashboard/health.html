@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Health Records - Admin Dashboard</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: black;
+      color: white;
+    }
+    .sidebar {
+      position: fixed;
+      width: 250px;
+      height: 100%;
+      background-color: #111;
+      padding: 20px;
+    }
+    .sidebar h1 {
+      color: white;
+      font-size: 24px;
+      margin-bottom: 40px;
+    }
+    .sidebar a {
+      display: block;
+      padding: 12px 0;
+      color: white;
+      text-decoration: none;
+      font-size: 16px;
+      border-bottom: 1px solid #333;
+    }
+    .main {
+      margin-left: 300px;
+      padding: 20px;
+    }
+    .topbar {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 20px;
+    }
+    .searchbar {
+      display: flex;
+      align-items: center;
+      background: white;
+      border-radius: 20px;
+      padding: 5px 10px;
+      width: 350px;
+    }
+    .searchbar input[type="email"] {
+      border: none;
+      outline: none;
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 14px;
+      flex: 1;
+    }
+    .searchbar button {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: black;
+      font-size: 18px;
+      margin-left: 8px;
+    }
+    .filters {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    select, input[type="number"] {
+      padding: 6px 10px;
+      border-radius: 20px;
+      border: none;
+      font-size: 14px;
+      outline: none;
+      min-width: 100px;
+    }
+    label {
+      font-weight: bold;
+      margin-right: 5px;
+    }
+    .graph-container {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      color: black;
+      max-width: 900px;
+    }
+    .slider-container {
+      margin-top: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: black;
+    }
+    .slider-label {
+      font-weight: bold;
+      min-width: 100px;
+    }
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 200px;
+      height: 15px;
+      border-radius: 10px;
+      background: linear-gradient(to right, #db7a80, #f4b4b4);
+      outline: none;
+      pointer-events: none; /* make slider non-editable */
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 0;
+      height: 0;
+    }
+    .pill-container {
+      margin-top: 20px;
+      color: black;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .pill-label {
+      font-weight: bold;
+      min-width: 150px;
+    }
+    select[disabled] {
+      background: #eee;
+      color: #555;
+      border-radius: 20px;
+      padding: 6px 10px;
+      border: none;
+      font-size: 14px;
+      outline: none;
+    }
+    .error-message {
+      color: #ff4d4d;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h1>AURA</h1>
+    <a href="users.html">User Accounts</a>
+    <a href="health.html">Health Records</a>
+    <a href="fertilitycenters.html">Fertility Centers</a>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <form id="searchForm" class="searchbar" onsubmit="return false;">
+        <input type="email" id="emailInput" placeholder="Search user email..." required />
+        <button type="submit" title="Search"><i class="fa fa-search"></i></button>
+      </form>
+    </div>
+
+    <div class="filters">
+      <label for="recordType">Health Record Type:</label>
+      <select id="recordType" aria-label="Health Record Type">
+        <option value="symptoms">Symptoms</option>
+        <option value="vaginal_discharge">Vaginal Discharge</option>
+        <option value="menstrual_flow">Menstrual Flow</option>
+        <option value="pill">Pill Intake</option> <!-- Pill intake uses date_prescribed -->
+      </select>
+      <label for="monthFrom">from:</label>
+      <select id="monthFrom" aria-label="Month from">
+        <option value="1">January</option><option value="2">February</option><option value="3">March</option>
+        <option value="4">April</option><option value="5">May</option><option value="6">June</option>
+        <option value="7">July</option><option value="8">August</option><option value="9">September</option>
+        <option value="10">October</option><option value="11">November</option><option value="12">December</option>
+      </select>
+      <label for="monthTo">~</label>
+      <select id="monthTo" aria-label="Month to">
+        <option value="1">January</option><option value="2">February</option><option value="3">March</option>
+        <option value="4">April</option><option value="5">May</option><option value="6">June</option>
+        <option value="7">July</option><option value="8">August</option><option value="9">September</option>
+        <option value="10">October</option><option value="11">November</option><option value="12">December</option>
+      </select>
+      <select id="yearSelect" aria-label="Year">
+        <option value="2023">2023</option><option value="2024" selected>2024</option><option value="2025">2025</option>
+      </select>
+    </div>
+
+    <div class="graph-container">
+      <canvas id="symptomsChart" width="860" height="400"></canvas>
+
+      <div class="slider-container">
+        <span class="slider-label">Blood Flow:</span>
+        <input type="range" id="bloodFlowSlider" min="0" max="100" value="50" disabled />
+        <span id="bloodFlowLabel">medium</span>
+      </div>
+
+      <div class="pill-container">
+        <span class="pill-label">Oral Contraceptives:</span>
+        <select id="pillSelect" disabled>
+          <option value="">Select pill</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="errorMessage" class="error-message" role="alert" aria-live="assertive"></div>
+  </div>
+
+  <script>
+    const symptomsLabels = [
+      'nothing', 'fatigue', 'cramps', 'bloating',
+      'tenderness', 'mood swings', 'diarrhea', 'acne',
+      'headache', 'cravings', 'insomnia', 'itch & dryness'
+    ];
+
+    const vaginalDischargeLabels = ['none', 'egg_white', 'watery', 'sticky', 'creamy', 'spotting', 'clumpy_whites', 'unusual', 'gray'];
+    const menstrualFlowLabels = ['light', 'medium', 'heavy', 'blood_clots'];
+
+    let symptomsChart = null;
+
+    function createChart(dataSets, labels) {
+      const canvas = document.getElementById('symptomsChart');
+      if (!canvas) {
+          // Recreate the canvas element if it's missing
+          const chartContainer = document.querySelector('.graph-container');
+          const newCanvas = document.createElement('canvas');
+          newCanvas.id = 'symptomsChart';
+          newCanvas.width = 860;
+          newCanvas.height = 400;
+          chartContainer.appendChild(newCanvas);
+      }
+
+      const ctx = document.getElementById('symptomsChart').getContext('2d');
+      if (symptomsChart) {
+          symptomsChart.destroy();
+      }
+
+      if (recordType === 'pill') {
+          // Clear the chart and display pill information in a table/container
+          const canvas = document.getElementById('symptomsChart');
+          if (canvas) {
+              const chartContainer = canvas.parentElement;
+              chartContainer.innerHTML = `
+                <div style="margin-top: 20px;">
+                  ${dataSets.map((pill, index) => `
+                    <div style="margin-bottom: 20px; border: 1px solid #ddd; padding: 15px; border-radius: 8px;">
+                      <h4>Pill ${index + 1}</h4>
+                      <p><strong>Name:</strong> ${pill.data[0]}</p>
+                      <p><strong>Intake Frequency:</strong> ${pill.data[1]} times/day</p>
+                      <p><strong>Status:</strong> ${pill.data[2]}</p>
+                      <p><strong>Prescribed Date:</strong> ${new Date(pill.data[3]).toLocaleDateString()}</p>
+                    </div>
+                  `).join('')}
+                </div>
+              `;
+          }
+      } else {
+          symptomsChart = new Chart(ctx, {
+              type: 'line',
+              data: {
+                  labels: labels,
+                  datasets: dataSets
+              },
+              options: {
+                  responsive: true,
+                  interaction: {
+                      mode: 'nearest',
+                      intersect: false
+                  },
+                  scales: {
+                      y: {
+                          beginAtZero: true,
+                          max: 50
+                      }
+                  }
+              }
+          });
+      }
+  }
+
+    function mapBloodFlowToLabel(value) {
+      if (value < 33) return 'low';
+      if (value < 66) return 'medium';
+      return 'high';
+    }
+
+    async function fetchHealthRecords(email, recordType, monthFrom, monthTo, year) {
+      // Map record types to their date columns
+      const dateColumn = {
+        symptoms: 'record_date',
+        vaginal_discharge: 'record_date',
+        menstrual_flow: 'record_date',
+        pill: 'date_prescribed'
+      }[recordType];
+
+      if (!dateColumn) {
+        throw new Error('Invalid record type');
+      }
+
+      const startMonth = String(monthFrom).padStart(2, '0');
+      const endMonth = String(monthTo).padStart(2, '0');
+      const startDate = `${year}-${startMonth}-01`;
+      const endDate = `${year}-${endMonth}-${new Date(year, endMonth, 0).getDate()}`; // Last day of the month
+
+      try {
+        // Update the API endpoint to include recordType and dateColumn
+        const response = await fetch(
+          `http://localhost:5000/api/health-records?email=${encodeURIComponent(email)}&record_type=${recordType}&start_date=${startDate}&end_date=${endDate}&date_column=${dateColumn}`
+        );
+        if (!response.ok) {
+          throw new Error('No records found or error fetching data');
+        }
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        throw error;
+      }
+    }
+
+    function processHealthData(records, recordType) {
+      const datasets = []; // For chart-based data (symptoms, discharge, flow)
+      const pillData = []; // For pill information
+      const monthColors = ['#f4b4b4', '#db7a80', '#a64d4d'];
+      const months = [];
+
+      // Define labels for chart types OUTSIDE the loop
+      const symptomLabels = [
+        'nothing', 'fatigue', 'cramps', 'bloating',
+        'tenderness', 'mood swings', 'diarrhea', 'acne',
+        'headache', 'cravings', 'insomnia', 'itch & dryness'
+      ];
+      const vaginalDischargeLabels = ['none', 'egg_white', 'watery', 'sticky', 'creamy', 'spotting', 'clumpy_whites', 'unusual', 'gray'];
+      const menstrualFlowLabels = ['light', 'medium', 'heavy', 'blood_clots'];
+
+      let labels = []; // Declare labels OUTSIDE the loop
+
+      records.forEach((record, index) => {
+        const dateField = record.record_date || record.date_prescribed || '';
+        const monthName = dateField ? new Date(dateField).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'Unknown Date';
+        months.push(monthName);
+
+        switch (recordType) {
+          case 'symptoms':
+          case 'vaginal_discharge':
+          case 'menstrual_flow':
+            // Set labels based on record type BEFORE processing data
+            labels = recordType === 'symptoms' ? symptomLabels : 
+                    recordType === 'vaginal_discharge' ? vaginalDischargeLabels : 
+                    menstrualFlowLabels;
+            
+            const data = labels.map(label => record[label] || 0);
+            datasets.push({
+              label: monthName,
+              data,
+              borderColor: monthColors[index % monthColors.length],
+              backgroundColor: monthColors[index % monthColors.length],
+              fill: false,
+              tension: 0.3,
+              pointRadius: 4,
+              pointHoverRadius: 6
+            });
+            break;
+
+          case 'pill':
+            // Pill processing (no chart labels needed)
+            const intakeStatus = record.intake_status_id === 1 
+              ? 'taken on time' 
+              : record.intake_status_id === 2 
+                ? 'taken yesterday' 
+                : record.intake_status_id === 3 
+                  ? 'not taken' 
+                  : 'unknown'; // Handle null/unknown
+                  
+            pillData.push({
+              pillName: record.name,
+              intakeFrequency: record.intake_no,
+              intakeStatus,
+              prescribedDate: record.date_prescribed,
+              description: record.description || 'No description'
+            });
+            break;
+
+          default:
+            // Fallback: use symptom labels if unknown type
+            labels = symptomLabels;
+            datasets.push({
+              label: monthName,
+              data: symptomLabels.map(() => 0),
+              borderColor: monthColors[index % monthColors.length],
+              backgroundColor: monthColors[index % monthColors.length],
+              fill: false,
+              tension: 0.3,
+              pointRadius: 4,
+              pointHoverRadius: 6
+            });
+        }
+      });
+
+      // Return appropriately based on record type
+      if (['symptoms', 'vaginal_discharge', 'menstrual_flow'].includes(recordType)) {
+        return { 
+          datasets, 
+          labels: labels.length > 0 ? labels : [] // Ensure labels is never undefined
+        };
+      }
+
+      if (recordType === 'pill') {
+        return { pillData };
+      }
+
+      return { datasets, labels: [] }; // Fallback for unknown types
+    }
+
+    function updateBloodFlowSlider(value) {
+      const slider = document.getElementById('bloodFlowSlider');
+      const label = document.getElementById('bloodFlowLabel');
+      if (slider && label) {
+        slider.value = value;
+        label.textContent = mapBloodFlowToLabel(value);
+      }
+    }
+
+    function updatePillSelect(pillData) {
+      const pillSelect = document.getElementById('pillSelect');
+      if (!pillSelect) return;
+      pillSelect.innerHTML = '';
+      if (recordType === 'pill' && pillData.name) { 
+        const option = document.createElement('option');
+        option.value = pillData.name;
+        option.textContent = `Pill: ${pillData.name}, Prescribed: ${pillData.date_prescribed}`;
+        pillSelect.appendChild(option);
+      } else {
+        // Reset to default for other record types
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = 'No pill recorded';
+        pillSelect.appendChild(option);
+      }
+    }
+
+    function renderPillInformation(pillData) {
+      const canvas = document.getElementById('symptomsChart');
+      if (canvas) {
+          const chartContainer = canvas.parentElement;
+
+          if (!pillData || pillData.length === 0) {
+              chartContainer.innerHTML = '<p>No pill records available.</p>';
+              return;
+          }
+
+          chartContainer.innerHTML = `
+            <div style="margin-top: 20px; color: black;">
+              ${pillData.map(pill => `
+                <div class="pill-record" style="padding: 15px; margin-bottom: 20px; border: 1px solid #ddd; border-radius: 8px;">
+                  <h3>${pill.pillName}</h3>
+                  <p><strong>Intake Frequency:</strong> ${pill.intakeFrequency} times/day</p>
+                  <p><strong>Status:</strong> ${pill.intakeStatus}</p>
+                  <p><strong>Prescribed Date:</strong> ${new Date(pill.prescribedDate).toLocaleDateString()}</p>
+                  <p><strong>Description:</strong> ${pill.description}</p>
+                </div>
+              `).join('')}
+            </div>
+          `;
+      }
+    }
+
+    document.getElementById('searchForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('emailInput').value.trim();
+      const recordType = document.getElementById('recordType').value;
+      const monthFrom = parseInt(document.getElementById('monthFrom').value);
+      const monthTo = parseInt(document.getElementById('monthTo').value);
+      const year = document.getElementById('yearSelect').value;
+
+      if (monthFrom > monthTo) {
+        showError('Invalid month range: "from" month cannot be after "to" month.');
+        return;
+      }
+
+      try {
+        const data = await fetchHealthRecords(email, recordType, monthFrom, monthTo, year);
+        const records = data.records || [];
+
+        if (!records.length) {
+          showError('No records found for the specified user and date range.');
+          clearChartAndWidgets();
+          return;
+        }
+
+        // Process data based on record type
+        const processedData = processHealthData(records, recordType);
+
+        if (recordType === 'pill') {
+          // Render pills
+          clearChartAndWidgets();
+          renderPillInformation(processedData.pillData);
+        } else {
+          // Remove pill information display when switching to other record types
+          const canvas = document.getElementById('symptomsChart');
+          if (canvas) {
+            const chartContainer = canvas.parentElement;
+            // Clear pill info container content
+            chartContainer.innerHTML = `<canvas id="symptomsChart" width="860" height="400"></canvas>`;
+          }
+
+          // Ensure labels exist before creating the chart
+          if (!processedData.labels.length) {
+            showError('No valid labels for chart');
+            clearChartAndWidgets();
+            return;
+          }
+          createChart(processedData.datasets, processedData.labels);
+
+          // Update widgets for non-pill types
+          const latestRecord = records[0];
+          if (recordType === 'menstrual_flow') {
+            updateBloodFlowSlider(latestRecord.heavy || latestRecord.medium || latestRecord.light || 50);
+          } else {
+            updateBloodFlowSlider(50);
+          }
+          updatePillSelect('');
+        }
+
+      } catch (error) {
+        showError(error.message);
+        clearChartAndWidgets();
+      }
+    });
+
+    // Helper functions to clear charts and widgets
+    function clearChartAndWidgets() {
+      if (symptomsChart) symptomsChart.destroy();
+      updateBloodFlowSlider(50);
+      updatePillSelect('');
+    }
+
+    function showError(message) {
+      document.getElementById('errorMessage').textContent = message;
+    }
+  </script>
+</body>
+</html>
