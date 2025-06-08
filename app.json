@@ -13,14 +13,18 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "runtimeVersion": {
+        "policy": "appVersion"
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.liewht.AURA"
+      "package": "com.liewht.AURA",
+      "runtimeVersion": "1.0.0"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -36,6 +40,9 @@
       "androidClientId": "275605283188-ilet75uj030f4lspee1cfv3j9b3qjm43.apps.googleusercontent.com",
       "webClientId": "275605283188-t5dqblqaqkhs2ul6ahfk8qv9f8s40nua.apps.googleusercontent.com"
     },
-    "owner": "liewht"
+    "owner": "liewht",
+    "updates": {
+      "url": "https://u.expo.dev/bbdf6f13-fe92-451d-b6e5-ee2208c2809f"
+    }
   }
 }

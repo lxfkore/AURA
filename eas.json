@@ -1,5 +1,8 @@
 {
-    "build": {
-      "android": {}
+  "build": {
+    "android": {},
+    "production": {
+      "releaseChannel": "production"
     }
   }
+}
